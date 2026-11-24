@@ -28,7 +28,10 @@ rule was missing, the rule was added (typographic quotes in strings, the direct 
 6. Backend built to API_CONTRACT.md in a separate session.
 7. Switch the app to the backend, remove all demo data, capture contract fixtures from the running backend.
 8. Walk the app on the emulator; fix what that showed.
-9. Finalise the docs.
+9. Polish from using the app (pull-to-refresh, smaller chips, an enquiry redesign), each change its own commit.
+10. A senior review pass across the app for leaks, races, error handling and recomposition; what it found is
+    in DECISIONS.md, "Known limitations".
+11. Finalise the docs.
 
 ## Key moments
 
@@ -48,6 +51,13 @@ rule was missing, the rule was added (typographic quotes in strings, the direct 
    and search, so categories now filter the home page in place and the category screen was deleted. I then
    restyled the app from a reference shot. The AI kept only elements with real data behind them and left
    out the rest (location, notifications, bottom navigation, chat/offer) rather than ship dead buttons.
+6. **Not applying SOLID everywhere.** I suggested an interface and `Impl` for every use case and repository.
+   The AI pointed out the repositories already work that way and argued against it for use cases: each has
+   one implementation, tests run them for real, and seven interfaces would add files without making
+   anything swappable. I agreed; the reasoning is in DECISIONS.md.
+7. **A review pass instead of more features.** I asked for a lead-developer review of the whole app. It found
+   no leaks but five real bugs, the worst an enquiry that can get stuck in a `409` loop after a lost response.
+   They're written up with fixes in DECISIONS.md rather than hidden.
 
 ## How the output was checked
 
@@ -95,6 +105,11 @@ rule was missing, the rule was added (typographic quotes in strings, the direct 
   reported as a confusing `ClassCastException`. The reads were moved out so a missing fixture fails clearly.
 - After giving server errors their own message, it left one ViewModel test expecting the old generic one.
   The test run caught it.
+- It committed imports out of ktlint's order in the home screen, which would have failed `spotlessCheck`.
+  It noticed while editing the next screen and checked every file it had touched.
+- It imported `assertDoesNotExist`, which is a member function, the same mistake as `onNode` earlier. It
+  caught it re-reading the change, before a build.
+- It made the thank-you screen scrollable, which stops its content from centring. Caught by re-reading.
 
 **Build**
 
@@ -135,6 +150,8 @@ rule was missing, the rule was added (typographic quotes in strings, the direct 
 - Fake Store has no featured list, no search, no enquiry endpoint, raw category names, and returns `200` for
   unknown ids. Those gaps shaped API_CONTRACT.md.
 - The backend's `409 IDEMPOTENCY_KEY_REUSED` wasn't in the contract or handled by the app. Both were fixed.
+- A commit message said ESLint was set up, but `backend/eslint.config.js` was never committed, so lint and CI
+  would have failed on a fresh clone. It found the untracked file when splitting changes into commits.
 
 ## Time spent
 

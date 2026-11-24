@@ -50,7 +50,7 @@ Clean Architecture + MVVM with unidirectional data flow.
 - Use cases and repositories are main-safe (Ktor suspends, nothing blocks). ViewModels use `viewModelScope`;
   tests swap `Dispatchers.Main` for a test dispatcher.
 - Strings live in Compose resources. No hardcoded user-facing text, including formats such as
-  `4.5 (120)`: use a resource with placeholders (`%1$s (%2$s)`). Use typographic quotes and
+  `4.7 | 120`: use a resource with placeholders (`%1$s | %2$s`). Use typographic quotes and
   apostrophes (“ ” ’) rather than escaped ones.
 - A module with Compose resources declares `compose.components.resources` directly and sets
   `generateResClass = always`, or its `Res` class won't be generated.
@@ -60,7 +60,8 @@ Clean Architecture + MVVM with unidirectional data flow.
 
 ## Don't
 
-- No `BaseViewModel`, no generic `UseCase<P, R>` base class, no mapper interfaces.
+- No `BaseViewModel`, no generic `UseCase<P, R>` base class, no mapper interfaces, and no interface per use
+  case. Abstractions go where implementations change (data sources, repositories); see DECISIONS.md.
 - No new library without a reason written in DECISIONS.md. Stable versions only (no alpha, beta, RC).
 - No calls to fakestoreapi.com from the app (images excepted, see DECISIONS.md). Product data comes
   only through our backend (see API_CONTRACT.md). No demo or bundled data in production code.

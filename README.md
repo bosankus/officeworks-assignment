@@ -8,12 +8,33 @@ backed by a Node.js + TypeScript API over the Fake Store API.
 
 - **Home**: search bar, category chips (outlined icon; filled and highlighted when selected) and the
   5 featured products. Selecting a category filters the page in place: its 3 top-rated products, then
-  the rest. Tapping the selected chip again returns to the featured products.
+  the rest. Tapping the selected chip again returns to the featured products. Pull down to refresh.
 - **Search**: results for the typed term, or an empty state.
-- **Product detail**: image, price badge, category, rating and description, with a pinned **Enquire** button.
-- **Enquiry**: name and email (required), phone and message (optional), inline validation, then "Thank you".
-  The sales inbox receives one email per enquiry, even if the customer retries.
+- **Product detail**: image, price badge, category, rating, title and description, with a pinned **Enquire** button.
+- **Enquiry**: a card at the top shows the product (photo, title, price) and taps back to it. Name and email
+  (required), phone and message (optional), inline validation, and a Send button that stays above the
+  keyboard. The thank-you screen names the email the reply will go to. The sales inbox receives one email
+  per enquiry, even if the customer retries.
 - Every screen has loading, error (with retry) and empty states, in light and dark themes.
+
+## How it fits together
+
+```mermaid
+flowchart LR
+    subgraph App["Android app · Kotlin Multiplatform + Compose"]
+        direction LR
+        UI["Screens<br/>Home · Search · Detail · Enquiry"] --> VM["ViewModels<br/>one UiState each"]
+        VM --> UC["Use cases<br/>core:domain"]
+        UC --> Repo["Repositories + Ktor client<br/>core:data"]
+    end
+    Repo -- "JSON over /api/v1" --> API["Backend<br/>Node.js + Fastify"]
+    API -- "catalogue, cached 5 min" --> FS["Fake Store API"]
+    API -- "enquiry email, SMTP" --> Mail["Sales inbox<br/>Mailpit locally"]
+    UI -. "product images only" .-> FS
+```
+
+The app talks only to the backend. The backend reads the catalogue from Fake Store and emails each
+enquiry to sales; the idempotency key sent with an enquiry means a retry can't email twice.
 
 ## Stack choice
 
@@ -133,10 +154,14 @@ installed app does, to show data.
 ./gradlew spotlessApply                           # fix formatting
 ./gradlew testAndroidHostTest --continue          # app unit tests, every module (JVM, no emulator)
 ./gradlew connectedAndroidDeviceTest              # Compose UI tests, needs a running emulator
-(cd backend && npm install && npm test)            # backend tests, no network needed
+(cd backend && npm install && npm run check)      # backend: typecheck, lint, tests with a coverage floor
 ```
 
 ktlint rules are in `.editorconfig`, so Android Studio formats the same way.
+
+The backend also runs in GitHub Actions (`.github/workflows/backend.yml`) on every PR that touches it:
+`npm run check`, a build, then `docker compose up` with an enquiry sent twice to check exactly one email
+reaches Mailpit.
 
 Each module writes an HTML report to `build/reports/tests/`. There is no coverage report for the app
 yet; see DECISIONS.md.

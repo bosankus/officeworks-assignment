@@ -20,6 +20,12 @@
   a reducer can be added inside any ViewModel that grows complex without changing the architecture.
 - **Use cases on every path**, even thin ones. That costs a few small classes but gives every
   feature change an obvious home and keeps ViewModels free of repository details.
+- **Interfaces where implementations change, not everywhere.** Data sources and repositories are interfaces
+  (the domain owns `ProductRepository`, the data layer provides `ProductRepositoryImpl`), because that's
+  where the vendor, cache or backend will change. Use cases are concrete classes: each has one
+  implementation, tests run them for real over fake repositories, and an interface per use case would add
+  a file and a Koin binding each without making anything swappable. Extracting one when a second
+  implementation appears is a small refactor.
 - **Six modules** (`core:domain`, `core:data`, `core:ui`, `feature:catalogue`, `feature:enquiry`,
   `shared`). Enough to enforce boundaries at compile time without a module per screen.
 - **UI tests run on an emulator.** `commonTest` is also compiled into Android host tests (plain JVM),
@@ -112,8 +118,8 @@ All stable versions, pinned in `gradle/libs.versions.toml`.
 | Refresh | Pull-to-refresh on Home reloads the featured products, categories and any selected category while the current products stay on screen. A failed refresh keeps them and shows a snackbar instead of an error page. The backend caches the catalogue for 5 minutes, so a pull can return the same data; that's fine for a catalogue and protects Fake Store. |
 | Category | Category chips filter the home page in place: each chip has a category icon, outlined by default and filled when selected; tapping the selected chip again returns to the featured products. "Top rated" = the 3 highest-rated products in that category (rating, then review count); the rest follow, sorted by rating. |
 | Search | Searches all categories, case-insensitively, on title, description and category. Every term must match the start of a word, so "mens" doesn't return women's products. Blank queries are blocked in the app and rejected by the backend. |
-| Enquiry form | Name and email required; phone and message (≤ 500 chars) optional. Product attached automatically and shown at the top (photo, title, price), so the customer can see what they're asking about. The photo and price load separately; if that fails, the title from navigation is enough and the form still works. The send button is pinned above the keyboard. |
-| After enquiry | A thank-you message replaces the form and names the email the reply will go to; double submission is prevented. |
+| Enquiry form | Name and email required; phone and message (≤ 500 chars) optional. Product attached automatically and shown at the top (photo, title, price), so the customer can see what they're asking about. The photo and price load separately; if that fails, the title from navigation is enough and the form still works. The send button is pinned above the keyboard. Tapping the product card goes back to the product: the form is only opened from the product page. |
+| After enquiry | A thank-you message replaces the form and names the email the reply will go to; double submission is prevented. The top bar is hidden there: "Back to product" or system back leaves. |
 | Currency | The backend sends AUD (Fake Store has no currency field). The app formats whatever code it receives with the platform's number formatter and the device locale: `$109.95` in Australia, `A$109.95` elsewhere so it isn't mistaken for US dollars, and the right decimals for any currency. An unknown code still shows as `XYZ 5.00`. |
 | Images | The backend passes Fake Store's image URLs through, and Coil loads them directly from `fakestoreapi.com`. They're static assets, not product data; every API call goes to our backend. A CDN or image proxy is a later concern. |
 | Stock | No stock data exists, so every product can be enquired about. |
@@ -181,11 +187,26 @@ Domain, data, UI and the Compose UI tests carry over unchanged.
    AGP 9, or AGP's built-in JaCoCo).
 6. Backend: generate an OpenAPI spec from the zod schemas, and store enquiries (DynamoDB) with an
    outbox so an SMTP outage delays emails instead of failing the request.
+7. Home: a row per category under the top picks, like quick-commerce apps. First composed in the app from
+   the existing endpoints; later a `GET /home` feed, so the backend decides the sections without an app release.
 
 ## Known limitations
 
-- Two quick taps can navigate twice (two detail screens, or back past a screen). Fix: navigate only
-  while the current screen is resumed.
+Not fixed yet. Most were found in a review pass across the app; each has its fix.
+
+- Two quick taps can navigate twice: two detail screens, two enquiry forms (each with its own idempotency
+  key), or back past a screen. Fix: wrap navigation callbacks in `dropUnlessResumed`.
+- An enquiry can get stuck. If the email is sent but the response is lost (timeout on a flaky network), the
+  app shows an error; if the customer then edits the form and retries, the same key arrives with a different
+  body, the backend answers `409`, and every retry fails the same way. Fix: a new key when the form is edited
+  after a failure. Retrying an unchanged form keeps the key, so duplicates are still prevented.
+- Leaving the form while it's sending (back, or tapping the product card) cancels the request, and the
+  customer doesn't learn whether it went. Fix: block leaving for the short sending window.
+- Pull-to-refresh while a category is still loading cancels that load; if the refresh then fails, the
+  category shows a spinner that never ends. Fix: show the category error instead.
+- On Home the grid's last row sits partly under a 3-button navigation bar (edge-to-edge, no `Scaffold`).
+  Fix: add the navigation bar inset to the grid's bottom padding.
+- A product that doesn't exist (`404`) still offers Retry, which can't help.
 - The enquiry form isn't saved if Android kills the app in the background, so the customer retypes it.
   Fix: keep the form and its idempotency key in `SavedStateHandle`.
 - The release build has no production backend URL; it's built in `scripts/ci.sh` only to catch R8 issues.
