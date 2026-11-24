@@ -111,7 +111,7 @@ fun ProductImage(url: String, modifier: Modifier = Modifier) {
 
 @Composable
 fun RatingRow(rating: Double, count: Int, modifier: Modifier = Modifier, showCount: Boolean = true) {
-    val description = stringResource(Res.string.rating_description, rating.toString(), count.toString())
+    val description = stringResource(Res.string.rating_description, "$rating", "$count")
     Row(
         modifier = modifier.clearAndSetSemantics { contentDescription = description },
         verticalAlignment = Alignment.CenterVertically,
@@ -124,7 +124,7 @@ fun RatingRow(rating: Double, count: Int, modifier: Modifier = Modifier, showCou
             modifier = Modifier.size(Sizes.iconSmall),
         )
         Text(
-            if (showCount) stringResource(Res.string.rating_value, rating.toString(), count.toString()) else rating.toString(),
+            if (showCount) stringResource(Res.string.rating_value, "$rating", "$count") else rating.toString(),
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )

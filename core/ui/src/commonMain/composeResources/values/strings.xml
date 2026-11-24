@@ -6,6 +6,6 @@
     <string name="error_rate_limited">Too many attempts. Please wait a minute and try again.</string>
     <string name="error_not_found">We couldn’t find that.</string>
     <string name="error_generic">Something went wrong. Please try again.</string>
-    <string name="rating_value">%1$s (%2$s)</string>
+    <string name="rating_value">%1$s | %2$s</string>
     <string name="rating_description">Rated %1$s out of 5 from %2$s reviews</string>
 </resources>
