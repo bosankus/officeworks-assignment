@@ -99,7 +99,11 @@ fun EnquiryScreen(productId: Int, productTitle: String, onBack: () -> Unit) {
 internal fun EnquiryContent(productTitle: String, state: EnquiryUiState, onEvent: (EnquiryEvent) -> Unit, onBack: () -> Unit) {
     val submitted = state.status == EnquiryStatus.Submitted
     Scaffold(
-        topBar = { AppTopBar(stringResource(Res.string.enquiry_title), onBack) },
+        topBar = {
+            if (!submitted) {
+                AppTopBar(stringResource(Res.string.enquiry_title), onBack)
+            }
+        },
         bottomBar = {
             if (!submitted) {
                 SendBar(submitting = state.status == EnquiryStatus.Submitting, onSend = { onEvent(EnquiryEvent.Submit) })

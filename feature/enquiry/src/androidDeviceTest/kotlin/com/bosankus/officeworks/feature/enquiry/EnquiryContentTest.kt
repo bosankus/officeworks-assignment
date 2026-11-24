@@ -120,4 +120,19 @@ class EnquiryContentTest {
 
         assertTrue(back)
     }
+
+    @Test
+    fun thank_you_hides_the_top_bar() = runComposeUiTest {
+        setContent { AppTheme { EnquiryContent(title, EnquiryUiState(status = EnquiryStatus.Submitted), {}, {}) } }
+
+        onNodeWithTag(EnquiryTestTags.THANK_YOU).assertIsDisplayed()
+        onNodeWithText("Enquire").assertDoesNotExist()
+    }
+
+    @Test
+    fun form_shows_the_top_bar() = runComposeUiTest {
+        setContent { AppTheme { EnquiryContent(title, EnquiryUiState(), {}, {}) } }
+
+        onNodeWithText("Enquire").assertIsDisplayed()
+    }
 }
