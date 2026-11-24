@@ -5,5 +5,5 @@ import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
 
 val enquiryModule = module {
-    viewModel { params -> EnquiryViewModel(params.get(), get(), get()) }
+    viewModel { params -> EnquiryViewModel(params.get(), get(), get(), get()) }
 }

@@ -10,9 +10,11 @@ import com.bosankus.officeworks.core.domain.model.ProductId
 import com.bosankus.officeworks.core.domain.repository.EnquiryRepository
 import com.bosankus.officeworks.core.domain.result.DataError
 import com.bosankus.officeworks.core.domain.result.DataResult
+import com.bosankus.officeworks.core.domain.usecase.GetProductUseCase
 import com.bosankus.officeworks.core.domain.usecase.NewIdempotencyKeyUseCase
 import com.bosankus.officeworks.core.domain.usecase.SubmitEnquiryUseCase
 import com.bosankus.officeworks.core.ui.components.UiError
+import com.bosankus.officeworks.core.ui.format.formatPrice
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -43,12 +45,14 @@ class EnquiryViewModelTest {
     }
 
     private val repository = FakeEnquiryRepository()
+    private val products = FakeProductRepository()
     private var generatedKeys = 0
     private val viewModel by lazy {
         EnquiryViewModel(
             productId = ProductId(7),
             submitEnquiry = SubmitEnquiryUseCase(repository, EnquiryFormValidator()),
             newIdempotencyKey = NewIdempotencyKeyUseCase(IdGenerator { "key-${++generatedKeys}" }),
+            getProduct = GetProductUseCase(products),
         )
     }
 
@@ -163,6 +167,7 @@ class EnquiryViewModelTest {
             productId = ProductId(7),
             submitEnquiry = SubmitEnquiryUseCase(repository, EnquiryFormValidator()),
             newIdempotencyKey = NewIdempotencyKeyUseCase(IdGenerator { "key-${++generatedKeys}" }),
+            getProduct = GetProductUseCase(products),
         )
         secondForm.onEvent(EnquiryEvent.FieldChanged(EnquiryField.NAME, "Jane"))
         secondForm.onEvent(EnquiryEvent.FieldChanged(EnquiryField.EMAIL, "jane@example.com"))
@@ -210,5 +215,27 @@ class EnquiryViewModelTest {
 
         assertEquals("Jane", viewModel.state.value.form.name)
         assertEquals(1, repository.submitted.size)
+    }
+
+    @Test
+    fun `loads the product's photo and price for the summary card`() = runTest {
+        products.product = DataResult.Success(jacket())
+
+        viewModel.state.value
+        advanceUntilIdle()
+
+        assertEquals(EnquiryProductUi("https://example.com/7.png", formatPrice(5_599, "AUD")), viewModel.state.value.product)
+    }
+
+    @Test
+    fun `a failed product load leaves the form usable`() = runTest {
+        products.product = DataResult.Failure(DataError.Network)
+        fillValidForm()
+        advanceUntilIdle()
+
+        assertEquals(null, viewModel.state.value.product)
+        viewModel.onEvent(EnquiryEvent.Submit)
+        advanceUntilIdle()
+        assertEquals(EnquiryStatus.Submitted, viewModel.state.value.status)
     }
 }

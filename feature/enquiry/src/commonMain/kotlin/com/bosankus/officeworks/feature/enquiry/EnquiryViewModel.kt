@@ -6,11 +6,14 @@ import com.bosankus.officeworks.core.domain.enquiry.EnquiryField
 import com.bosankus.officeworks.core.domain.enquiry.EnquiryForm
 import com.bosankus.officeworks.core.domain.enquiry.FieldError
 import com.bosankus.officeworks.core.domain.model.ProductId
+import com.bosankus.officeworks.core.domain.result.DataResult
+import com.bosankus.officeworks.core.domain.usecase.GetProductUseCase
 import com.bosankus.officeworks.core.domain.usecase.NewIdempotencyKeyUseCase
 import com.bosankus.officeworks.core.domain.usecase.SubmitEnquiryResult
 import com.bosankus.officeworks.core.domain.usecase.SubmitEnquiryUseCase
 import com.bosankus.officeworks.core.ui.components.UiError
 import com.bosankus.officeworks.core.ui.components.toUiError
+import com.bosankus.officeworks.core.ui.format.formatPrice
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -21,7 +24,11 @@ internal data class EnquiryUiState(
     val form: EnquiryForm = EnquiryForm(),
     val fieldErrors: Map<EnquiryField, FieldError> = emptyMap(),
     val status: EnquiryStatus = EnquiryStatus.Editing,
+    /** Photo and price for the summary card; null until loaded, or if loading failed. */
+    val product: EnquiryProductUi? = null,
 )
+
+internal data class EnquiryProductUi(val imageUrl: String, val price: String)
 
 internal sealed interface EnquiryStatus {
     data object Editing : EnquiryStatus
@@ -39,6 +46,7 @@ internal class EnquiryViewModel(
     private val productId: ProductId,
     private val submitEnquiry: SubmitEnquiryUseCase,
     newIdempotencyKey: NewIdempotencyKeyUseCase,
+    getProduct: GetProductUseCase,
 ) : ViewModel() {
 
     // One key per form, reused on every retry, so the backend never emails sales twice.
@@ -46,6 +54,19 @@ internal class EnquiryViewModel(
 
     private val _state = MutableStateFlow(EnquiryUiState())
     val state: StateFlow<EnquiryUiState> = _state.asStateFlow()
+
+    init {
+        // Decoration only: the title arrives with navigation and the form works without this, so a failure is ignored.
+        viewModelScope.launch {
+            val result = getProduct(productId)
+            if (result is DataResult.Success) {
+                val product = result.data
+                _state.update {
+                    it.copy(product = EnquiryProductUi(product.imageUrl, formatPrice(product.price.cents, product.price.currencyCode)))
+                }
+            }
+        }
+    }
 
     fun onEvent(event: EnquiryEvent) {
         when (event) {

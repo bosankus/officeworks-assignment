@@ -4,6 +4,7 @@ import com.bosankus.officeworks.core.domain.enquiry.EnquiryField
 import com.bosankus.officeworks.core.domain.enquiry.EnquiryForm
 import com.bosankus.officeworks.core.domain.enquiry.IdempotencyKey
 import com.bosankus.officeworks.core.domain.model.ProductId
+import com.bosankus.officeworks.core.domain.usecase.GetProductUseCase
 import com.bosankus.officeworks.core.domain.usecase.NewIdempotencyKeyUseCase
 import com.bosankus.officeworks.core.domain.usecase.SubmitEnquiryResult
 import com.bosankus.officeworks.core.domain.usecase.SubmitEnquiryUseCase
@@ -39,7 +40,7 @@ class EnquiryViewModelInteractionTest {
     fun `key is created once and the form is passed as typed`() = runTest {
         every { newKey() } returns IdempotencyKey("key-1")
         coEvery { submitEnquiry(any(), any(), any()) } returns SubmitEnquiryResult.Sent
-        val viewModel = EnquiryViewModel(ProductId(7), submitEnquiry, newKey)
+        val viewModel = EnquiryViewModel(ProductId(7), submitEnquiry, newKey, GetProductUseCase(FakeProductRepository()))
 
         viewModel.onEvent(EnquiryEvent.FieldChanged(EnquiryField.NAME, "Jane"))
         viewModel.onEvent(EnquiryEvent.FieldChanged(EnquiryField.EMAIL, "jane@example.com"))
