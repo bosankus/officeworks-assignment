@@ -21,7 +21,8 @@ export function registerErrorHandling(app: FastifyInstance): void {
     }
 
     if (error instanceof AppError) {
-      if (error.statusCode >= 500) request.log.error({ err: error, cause: error.cause }, error.message);
+      // pino's err serializer already includes the cause chain.
+      if (error.statusCode >= 500) request.log.error({ err: error }, error.message);
       return reply.status(error.statusCode).send({ code: error.code, message: error.message } satisfies ErrorBody);
     }
 

@@ -57,6 +57,8 @@ rule was missing, the rule was added (typographic quotes in strings, the direct 
 - Compose UI tests for every acceptance criterion, run on an API 31 emulator. _API 36: confirm after the
   Espresso fix._
 - The acceptance criteria walked by hand on the emulator against the running backend.
+- Backend: `npm run check` (typecheck, type-aware lint, tests, coverage floor) and a CI smoke test that runs
+  `docker compose up` and checks exactly one email lands in Mailpit for a retried enquiry.
 - Backend failure paths on a real machine: with Mailpit stopped an enquiry returned `502`; after restarting
   it, the retry with the same key produced exactly one email.
 
@@ -112,6 +114,15 @@ rule was missing, the rule was added (typographic quotes in strings, the direct 
   Fixed in the service, so any email adapter behaves the same.
 - While wiring the logger, it briefly left a placeholder `server.ts` (`undefined as never` for the services).
   It was replaced before anything ran, but it's the kind of stub to look for in AI output.
+- Its first catalogue cache blocked on a refresh once the TTL expired. While Fake Store was down, every
+  request would wait out the 5-second timeout before getting stale data, and each one hit Fake Store again.
+  It found this in its own review pass a day later; a failing test came first, then the switch to
+  stale-while-revalidate.
+- In that same review, its first bounded idempotency store trimmed for size before looking up the key, so a
+  retry at the size limit could evict its own entry and send a second email. It caught this by tracing
+  the new test by hand before running it.
+- It picked TypeScript 7 without checking tooling support. Adding ESLint showed typescript-eslint stops
+  at 6.0, so it was pinned to 6.0.
 - Fake Store was unreachable from its sandbox, so the backend's test fixture was first written from the
   documented response shape. The live API showed every image URL had changed (`.jpg` -> `t.png`) and that the
   docs omit `rating`, which the API does return. The fixture was corrected.

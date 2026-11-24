@@ -59,10 +59,14 @@ different body returns `409`.
 ## Test
 
 ```bash
-npm test               # 81 tests, no network needed
+npm test               # no network needed
+npm run check          # typecheck + lint + tests with coverage floor: what CI runs
 npm run test:coverage  # coverage report in coverage/
-npm run typecheck
 ```
+
+CI (`.github/workflows/backend.yml`) runs `npm run check` and a build on every PR that touches the
+backend. It then starts the stack with `docker compose up` exactly as above, sends an enquiry twice with
+the same idempotency key, and checks that exactly one email reached Mailpit.
 
 Tests run the real Fastify app in-process (`app.inject`) against a recorded Fake Store fixture, a
 recording email sender, and a tiny in-process SMTP server for the SMTP adapter.
@@ -94,7 +98,7 @@ src/
     CatalogueService.ts     Featured, categories, search, product rules
     matching.ts             Slugs, display names, in-memory search for sources that can't search
     routes.ts               HTTP <-> service, input validation
-    fakestore/              Fake Store adapter: fetch, cache, map vendor DTOs to our model
+    fakestore/              Fake Store adapter: fetch, stale-while-revalidate cache, map vendor DTOs
   enquiry/
     EnquiryService.ts       Validated enquiry -> email to sales, once per idempotency key
     EmailSender.ts          Email port

@@ -56,7 +56,7 @@ describe('loadConfig', () => {
 describe('InMemoryIdempotencyGuard', () => {
   it('forgets keys after the TTL', async () => {
     let now = 0;
-    const guard = new InMemoryIdempotencyGuard(1000, () => now);
+    const guard = new InMemoryIdempotencyGuard({ ttlMs: 1000, now: () => now });
     let calls = 0;
     const op = async () => ++calls;
 
@@ -67,6 +67,21 @@ describe('InMemoryIdempotencyGuard', () => {
     now = 1000;
     await guard.run('k', 'f', op);
     expect(calls).toBe(2);
+  });
+
+  it('forgets the oldest keys once it reaches its size limit', async () => {
+    const guard = new InMemoryIdempotencyGuard({ maxEntries: 2 });
+    let calls = 0;
+    const op = async () => ++calls;
+
+    await guard.run('a', 'f', op);
+    await guard.run('b', 'f', op);
+    await guard.run('c', 'f', op); // evicts 'a'
+    await guard.run('b', 'f', op); // still remembered
+    expect(calls).toBe(3);
+
+    await guard.run('a', 'f', op); // forgotten, so it runs again
+    expect(calls).toBe(4);
   });
 
   it('rejects a different fingerprint for the same key', async () => {

@@ -43,7 +43,8 @@ export class EnquiryService {
         buildEnquiryEmail({ enquiryId, enquiry, product, salesInbox: this.deps.salesInbox, receivedAt: this.now() }),
       );
     } catch (error) {
-      this.logger.error({ enquiryId, productId: product.id, err: error }, 'Enquiry email failed');
+      // Ids only; the error handler logs the cause with the request, so it isn't logged twice.
+      this.logger.warn({ enquiryId, productId: product.id }, 'Enquiry email failed');
       // Whatever the adapter throws, the client sees a retryable 502, never a raw 500.
       throw error instanceof AppError ? error : new UpstreamError('email', { cause: error });
     }

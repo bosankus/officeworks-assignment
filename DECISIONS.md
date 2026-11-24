@@ -79,9 +79,11 @@ All stable versions, pinned in `gradle/libs.versions.toml`.
 - **Filtering is part of `ProductRepository`** (`findProducts({ categorySlug, text })`), so a real
   database or search index can filter natively. The Fake Store adapter filters in memory because Fake
   Store has no search.
-- **Whole-catalogue cache in the Fake Store adapter**: 5-minute TTL, concurrent misses share one request,
-  and stale data is served if Fake Store is down. With ~20 products that's one request per 5 minutes,
-  and it sidesteps Fake Store's 200-with-empty-body for unknown ids.
+- **Whole-catalogue cache in the Fake Store adapter, stale-while-revalidate.** Only the very first request
+  waits for Fake Store. After the 5-minute TTL, requests are answered from the old catalogue at once while
+  a single background refresh replaces it; if Fake Store is down, the old catalogue stays and requests
+  never wait on its timeout. With ~20 products that's one request per 5 minutes, and it sidesteps Fake
+  Store's 200-with-empty-body for unknown ids.
 - **SMTP, with Mailpit locally.** No paid account for the reviewer, and the email is visible at
   `localhost:8025`. Amazon SES works over SMTP with config only. The email is plain text, so nothing the
   customer typed is rendered as HTML, and the customer is the `Reply-To`.
@@ -93,6 +95,12 @@ All stable versions, pinned in `gradle/libs.versions.toml`.
 - **No PII in logs**: enquiry logs carry the enquiry id and product id only.
 - **Two ways to run it.** `docker compose up` is the one-command path for reviewers. Plain Node plus
   Mailpit works without Docker; Docker Desktop needs a paid licence at larger companies, so it isn't required.
+- **TypeScript 6.0, not 7.** TypeScript 7 (the native compiler) is out, but typescript-eslint doesn't support
+  it yet. Type-aware linting (floating promises, unsafe `any`) is worth more here than a faster compiler.
+- **Backend CI** (`.github/workflows/backend.yml`): typecheck, lint, tests with a coverage floor, build,
+  then a smoke test that runs the reviewers' `docker compose up`, sends an enquiry twice with one key and
+  checks exactly one email reached Mailpit. If Fake Store itself is down, the live checks warn rather than
+  fail, because its outages aren't our regressions.
 - **Verified on a real machine, not just in tests**: live Fake Store data through the backend, an
   enquiry email in Mailpit, a `502` while Mailpit was stopped, and exactly one email after the retry.
 
@@ -168,7 +176,7 @@ Domain, data, UI and the Compose UI tests carry over unchanged.
 2. `CachingProductRepository` with a short TTL.
 3. Pagination in the contract and grid.
 4. Screenshot tests for light and dark themes.
-5. CI on every PR: build the app, run app and backend tests, and app coverage (Kover once it supports
+5. Extend CI to the app (the backend already has it): build, run app tests, and app coverage (Kover once it supports
    AGP 9, or AGP's built-in JaCoCo).
 6. Backend: generate an OpenAPI spec from the zod schemas, and store enquiries (DynamoDB) with an
    outbox so an SMTP outage delays emails instead of failing the request.

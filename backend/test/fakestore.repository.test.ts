@@ -16,7 +16,7 @@ function setup(options: { ttlMs?: number; fetch?: typeof fetch } = {}) {
     currency: 'AUD',
     timeoutMs: 1000,
     cacheTtlMs: options.ttlMs ?? 60_000,
-    fetch: fetchMock as typeof fetch,
+    fetch: fetchMock,
     now: () => now,
   });
   return { repository, fetchMock, advance: (ms: number) => (now += ms) };
@@ -64,7 +64,22 @@ describe('FakeStoreProductRepository', () => {
 
     await repository.findProducts();
 
-    expect(String(fetchMock.mock.calls[0]?.[0])).toBe('https://fakestore.test/products');
+    expect(fetchMock).toHaveBeenCalledWith('https://fakestore.test/products', expect.anything());
+  });
+
+  it('keeps a path prefix in the base URL', async () => {
+    const fetchMock = vi.fn<typeof fetch>(async () => jsonResponse(fakeStoreFixture));
+    const repository = new FakeStoreProductRepository({
+      baseUrl: 'https://proxy.test/fakestore/',
+      currency: 'AUD',
+      timeoutMs: 1000,
+      cacheTtlMs: 0,
+      fetch: fetchMock,
+    });
+
+    await repository.findProducts();
+
+    expect(fetchMock).toHaveBeenCalledWith('https://proxy.test/fakestore/products', expect.anything());
   });
 
   it('finds by id and returns null for unknown ids', async () => {
@@ -120,13 +135,50 @@ describe('FakeStoreProductRepository', () => {
     expect(await repository.findProducts()).toHaveLength(20);
   });
 
+  it('answers from the stale catalogue immediately while Fake Store is slow or down', async () => {
+    let hang = false;
+    const { repository, fetchMock, advance } = setup({
+      ttlMs: 1000,
+      fetch: (async () => (hang ? new Promise<Response>(() => {}) : jsonResponse(fakeStoreFixture))),
+    });
+    await repository.findProducts();
+
+    hang = true;
+    advance(5000);
+    const result = await Promise.race([
+      repository.findProducts(),
+      new Promise((resolve) => setTimeout(() => resolve('blocked'), 50)),
+    ]);
+    expect(result).toHaveLength(20);
+
+    // Further requests share the one in-flight refresh instead of piling onto Fake Store.
+    await repository.findProducts();
+    await repository.listCategories();
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('uses the refreshed catalogue once the background refresh completes', async () => {
+    let version = 1;
+    const { repository, advance } = setup({
+      ttlMs: 1000,
+      fetch: async () => jsonResponse(version === 1 ? fakeStoreFixture : fakeStoreFixture.slice(0, 3)),
+    });
+    await repository.findProducts();
+
+    version = 2;
+    advance(1000);
+    expect(await repository.findProducts()).toHaveLength(20); // stale answer, refresh started
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(await repository.findProducts()).toHaveLength(3);
+  });
+
   it.each([
     ['a non-2xx response', async () => jsonResponse({ error: 'nope' }, 500)],
     ['a network error', async () => Promise.reject(new TypeError('fetch failed'))],
     ['a non-array body', async () => jsonResponse({ products: [] })],
     ['invalid JSON', async () => new Response('<html>', { status: 200 })],
   ])('throws UpstreamError on %s with nothing cached', async (_label, failingFetch) => {
-    const { repository } = setup({ fetch: failingFetch as typeof fetch });
+    const { repository } = setup({ fetch: failingFetch });
 
     await expect(repository.findProducts()).rejects.toBeInstanceOf(UpstreamError);
   });
@@ -145,9 +197,10 @@ describe('FakeStoreProductRepository', () => {
       currency: 'AUD',
       timeoutMs: 20,
       cacheTtlMs: 0,
-      fetch: ((_url: URL, init?: RequestInit) =>
+      // Never answers; only the timeout signal can end it, just like a hung connection.
+      fetch: ((_url: string, init?: RequestInit) =>
         new Promise((_resolve, reject) => {
-          init?.signal?.addEventListener('abort', () => reject(init.signal?.reason));
+          init?.signal?.addEventListener('abort', () => reject(new Error('aborted by timeout')));
         })) as typeof fetch,
     });
 

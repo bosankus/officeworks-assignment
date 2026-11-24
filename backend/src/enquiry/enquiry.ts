@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+// Matching control characters is the point: they'd let a name inject extra lines into the email.
+// eslint-disable-next-line no-control-regex
 const CONTROL_CHARS = /[\u0000-\u001f\u007f]/;
 const PHONE_PATTERN = /^[+0-9 ()-]+$/;
 

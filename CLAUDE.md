@@ -130,3 +130,5 @@ Domain -> data -> UI. Don't start a layer until the previous one compiles and it
 - API changes start in API_CONTRACT.md, then a failing test, then code.
 - No PII in logs (name, email, phone, message): ids and error types only.
 - Tests use `app.inject` with fixtures and fakes. No network in tests.
+- `npm run check` (typecheck, lint, tests, coverage floor) must pass before backend work is called done.
+- TypeScript stays on 6.0 until typescript-eslint supports 7.

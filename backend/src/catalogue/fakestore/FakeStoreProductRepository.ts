@@ -49,20 +49,21 @@ export class FakeStoreProductRepository implements ProductRepository {
     return (await this.products()).find((product) => product.id === id) ?? null;
   }
 
+  /**
+   * Stale-while-revalidate: once a catalogue has loaded, requests never wait on Fake Store again. An
+   * expired catalogue is served immediately while one background refresh replaces it; if that refresh
+   * fails, the old catalogue stays and the next request tries again.
+   */
   private async products(): Promise<Product[]> {
     const current = this.snapshot;
-    if (current && this.now() - current.loadedAt < this.options.cacheTtlMs) return current.products;
+    if (!current) return (await this.refresh()).products;
 
-    try {
-      return (await this.refresh()).products;
-    } catch (error) {
-      // A stale catalogue is better than an error page while the vendor is down.
-      if (current) {
-        this.logger.warn({ err: error, ageMs: this.now() - current.loadedAt }, 'Serving stale catalogue');
-        return current.products;
-      }
-      throw error;
+    if (this.now() - current.loadedAt >= this.options.cacheTtlMs) {
+      this.refresh().catch((error: unknown) => {
+        this.logger.warn({ err: error, ageMs: this.now() - current.loadedAt }, 'Catalogue refresh failed; serving stale data');
+      });
     }
+    return current.products;
   }
 
   /** Concurrent cache misses share one upstream request. */
@@ -74,7 +75,8 @@ export class FakeStoreProductRepository implements ProductRepository {
   }
 
   private async load(): Promise<Snapshot> {
-    const url = new URL('/products', this.options.baseUrl);
+    // Join rather than `new URL('/products', base)`, which would drop a path prefix such as a proxy's.
+    const url = `${this.options.baseUrl.replace(/\/+$/, '')}/products`;
     let body: unknown;
     try {
       const response = await this.fetch(url, {
