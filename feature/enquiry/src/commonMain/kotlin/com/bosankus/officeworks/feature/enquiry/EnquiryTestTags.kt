@@ -7,6 +7,7 @@ object EnquiryTestTags {
     const val MESSAGE_FIELD = "enquiry_message"
     const val SUBMIT_BUTTON = "enquiry_submit"
     const val SUBMIT_ERROR = "enquiry_submit_error"
+    const val PRODUCT_SUMMARY = "enquiry_product_summary"
     const val THANK_YOU = "enquiry_thank_you"
     const val BACK_TO_PRODUCT = "enquiry_back_to_product"
 }

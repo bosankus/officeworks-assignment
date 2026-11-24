@@ -30,6 +30,13 @@ object Sizes {
     val chipHeight = 36.dp
     val chipCornerRadius = 8.dp
 
+    /** Product photo in a summary row, e.g. at the top of the enquiry form. */
+    val thumbnail = 64.dp
+
+    /** Circle behind the tick on a success screen, and the tick inside it. */
+    val successBadge = 72.dp
+    val successIcon = 40.dp
+
     /** Narrowest a product tile may get before the grid drops a column. */
     val productTileMinWidth = 150.dp
 }
