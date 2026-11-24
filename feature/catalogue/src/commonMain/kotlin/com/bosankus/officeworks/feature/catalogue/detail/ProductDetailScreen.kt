@@ -26,6 +26,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bosankus.officeworks.core.domain.model.ProductId
 import com.bosankus.officeworks.core.ui.components.AppTopBar
@@ -38,13 +39,15 @@ import com.bosankus.officeworks.core.ui.theme.Spacing
 import com.bosankus.officeworks.feature.catalogue.CatalogueTestTags
 import com.bosankus.officeworks.feature.catalogue.model.ProductUi
 import com.bosankus.officeworks.feature.catalogue.resources.Res
-import com.bosankus.officeworks.feature.catalogue.resources.description
 import com.bosankus.officeworks.feature.catalogue.resources.enquire
-import com.bosankus.officeworks.feature.catalogue.resources.product_title
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
+/**
+ * Displays detailed information for a specific product.
+ * Handles back navigation and product enquiry actions.
+ */
 @Composable
 fun ProductDetailScreen(productId: Int, onBack: () -> Unit, onEnquire: (productId: Int, productTitle: String) -> Unit) {
     val viewModel = koinViewModel<ProductDetailViewModel> { parametersOf(ProductId(productId)) }
@@ -63,7 +66,7 @@ internal fun ProductDetailContent(
     Scaffold(
         topBar = {
             AppTopBar(
-                title = product?.title ?: stringResource(Res.string.product_title),
+                title = String(),
                 onBack = onBack,
                 trailing = if (product != null) {
                     { PriceBadge(product.price) }
@@ -74,7 +77,6 @@ internal fun ProductDetailContent(
         },
         bottomBar = {
             if (product != null) {
-                // Pinned, so the action is always one tap away however long the description is.
                 Button(
                     onClick = { onEnquire(product.id, product.title) },
                     shape = CircleShape,
@@ -99,7 +101,6 @@ internal fun ProductDetailContent(
     }
 }
 
-/** Blue badge flush with the right edge, as in the design. */
 @Composable
 private fun PriceBadge(price: String) {
     Text(
@@ -121,25 +122,26 @@ private fun ProductDetails(product: ProductUi, modifier: Modifier) {
         verticalArrangement = Arrangement.spacedBy(Spacing.medium),
     ) {
         ProductStage(product.imageUrl)
-        Text(
-            product.categoryName,
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.primary,
-        )
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                stringResource(Res.string.description),
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.SemiBold,
+                product.categoryName,
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary,
             )
             RatingRow(product.rating, product.ratingCount)
         }
         Text(
-            product.description,
+            text = product.title,
+            overflow = TextOverflow.Ellipsis,
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.SemiBold,
+        )
+        Text(
+            text = product.description,
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(bottom = Spacing.medium),
@@ -147,7 +149,6 @@ private fun ProductDetails(product: ProductUi, modifier: Modifier) {
     }
 }
 
-/** The photo, centred and unframed, so it reads as the hero of the page. */
 @Composable
 private fun ProductStage(imageUrl: String) {
     Box(Modifier.fillMaxWidth().padding(vertical = Spacing.small), contentAlignment = Alignment.Center) {
