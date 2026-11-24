@@ -109,6 +109,7 @@ All stable versions, pinned in `gradle/libs.versions.toml`.
 | Area | Assumption |
 |---|---|
 | Home | The owner's 5 "top rated" products are a curated list from `GET /products/featured`, not computed. |
+| Refresh | Pull-to-refresh on Home reloads the featured products, categories and any selected category while the current products stay on screen. A failed refresh keeps them and shows a snackbar instead of an error page. The backend caches the catalogue for 5 minutes, so a pull can return the same data; that's fine for a catalogue and protects Fake Store. |
 | Category | Category chips filter the home page in place: each chip has a category icon, outlined by default and filled when selected; tapping the selected chip again returns to the featured products. "Top rated" = the 3 highest-rated products in that category (rating, then review count); the rest follow, sorted by rating. |
 | Search | Searches all categories, case-insensitively, on title, description and category. Every term must match the start of a word, so "mens" doesn't return women's products. Blank queries are blocked in the app and rejected by the backend. |
 | Enquiry form | Name and email required; phone and message (≤ 500 chars) optional. Product attached automatically. |

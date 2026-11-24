@@ -152,4 +152,87 @@ class HomeViewModelTest : MainDispatcherTest() {
 
         assertEquals(jewellery, viewModel.content().selectedCategory)
     }
+
+    @Test
+    fun `pull to refresh keeps the products on screen while it reloads them`() = runTest {
+        repository.featured = DataResult.Success(featured)
+        val viewModel = viewModel()
+        advanceUntilIdle()
+
+        val refreshed = (6..10).map { product(it) }
+        repository.featured = DataResult.Success(refreshed)
+        viewModel.onEvent(HomeEvent.Refresh)
+
+        assertEquals(true, viewModel.content().isRefreshing)
+        assertEquals(ProductsSection.Featured(featured.map { it.toUi() }), viewModel.content().products)
+
+        advanceUntilIdle()
+        assertEquals(false, viewModel.content().isRefreshing)
+        assertEquals(ProductsSection.Featured(refreshed.map { it.toUi() }), viewModel.content().products)
+    }
+
+    @Test
+    fun `refresh with a category selected reloads that category`() = runTest {
+        repository.byCategory = DataResult.Success(listOf(product(1)))
+        val viewModel = viewModel()
+        advanceUntilIdle()
+        viewModel.onEvent(HomeEvent.CategoryTapped(electronicsUi))
+        advanceUntilIdle()
+
+        repository.byCategory = DataResult.Success(listOf(product(2)))
+        viewModel.onEvent(HomeEvent.Refresh)
+        advanceUntilIdle()
+
+        assertEquals(electronicsUi, viewModel.content().selectedCategory)
+        assertEquals(ProductsSection.Category(listOf(product(2).toUi()), emptyList()), viewModel.content().products)
+    }
+
+    @Test
+    fun `failed refresh keeps the products and reports the error once`() = runTest {
+        repository.featured = DataResult.Success(featured)
+        val viewModel = viewModel()
+        advanceUntilIdle()
+
+        repository.featured = DataResult.Failure(DataError.Network)
+        viewModel.onEvent(HomeEvent.Refresh)
+        advanceUntilIdle()
+
+        assertEquals(ProductsSection.Featured(featured.map { it.toUi() }), viewModel.content().products)
+        assertEquals(false, viewModel.content().isRefreshing)
+        assertEquals(UiError.Network, viewModel.content().refreshError)
+
+        viewModel.onEvent(HomeEvent.RefreshErrorShown)
+        assertEquals(null, viewModel.content().refreshError)
+    }
+
+    @Test
+    fun `refresh from the error screen loads the whole page`() = runTest {
+        repository.featured = DataResult.Failure(DataError.Network)
+        val viewModel = viewModel()
+        advanceUntilIdle()
+
+        repository.featured = DataResult.Success(featured)
+        viewModel.onEvent(HomeEvent.Refresh)
+        advanceUntilIdle()
+
+        assertEquals(ProductsSection.Featured(featured.map { it.toUi() }), viewModel.content().products)
+    }
+
+    @Test
+    fun `refresh falls back to featured when the selected category no longer exists`() = runTest {
+        repository.featured = DataResult.Success(featured)
+        val viewModel = viewModel()
+        advanceUntilIdle()
+        viewModel.onEvent(HomeEvent.CategoryTapped(electronicsUi))
+        advanceUntilIdle()
+
+        val jewellery = Category(CategorySlug("jewelery"), "Jewellery")
+        repository.categories = DataResult.Success(listOf(jewellery))
+        viewModel.onEvent(HomeEvent.Refresh)
+        advanceUntilIdle()
+
+        assertEquals(null, viewModel.content().selectedCategory)
+        assertEquals(listOf(jewellery.toUi()), viewModel.content().categories)
+        assertEquals(ProductsSection.Featured(featured.map { it.toUi() }), viewModel.content().products)
+    }
 }

@@ -16,6 +16,8 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipeDown
 import androidx.compose.ui.test.v2.runComposeUiTest
 import com.bosankus.officeworks.core.ui.components.StatusTestTags
 import com.bosankus.officeworks.core.ui.components.UiError
@@ -26,6 +28,7 @@ import com.bosankus.officeworks.feature.catalogue.home.HomeUiState
 import com.bosankus.officeworks.feature.catalogue.home.ProductsSection
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 @OptIn(ExperimentalTestApi::class)
 class HomeContentTest {
@@ -141,5 +144,24 @@ class HomeContentTest {
 
         onNodeWithText("Product 1").assertIsDisplayed()
         onNodeWithTag(CatalogueTestTags.SEARCH_FIELD).assertIsDisplayed()
+    }
+
+    @Test
+    fun pulling_down_the_products_asks_for_a_refresh() = runComposeUiTest {
+        val events = mutableListOf<HomeEvent>()
+        setContent(content(onEvent = { events += it }))
+
+        onNodeWithTag(CatalogueTestTags.PRODUCT_GRID).performTouchInput { swipeDown() }
+        waitForIdle()
+
+        assertTrue(HomeEvent.Refresh in events)
+    }
+
+    @Test
+    fun failed_refresh_keeps_the_products_and_shows_a_message() = runComposeUiTest {
+        setContent(content(state = featuredState.copy(refreshError = UiError.Network)))
+
+        onNodeWithText("You seem to be offline", substring = true).assertIsDisplayed()
+        onNodeWithText("Product 1").assertIsDisplayed()
     }
 }

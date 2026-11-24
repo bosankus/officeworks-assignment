@@ -3,6 +3,7 @@ package com.bosankus.officeworks.feature.catalogue.home
 import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.bosankus.officeworks.core.domain.model.CategoryPage
 import com.bosankus.officeworks.core.domain.model.CategorySlug
 import com.bosankus.officeworks.core.domain.result.DataResult
 import com.bosankus.officeworks.core.domain.usecase.GetCategoriesUseCase
@@ -25,8 +26,15 @@ import kotlinx.coroutines.launch
 internal sealed interface HomeUiState {
     data object Loading : HomeUiState
     data class Error(val error: UiError) : HomeUiState
-    data class Content(val categories: List<CategoryUi>, val selectedCategory: CategoryUi? = null, val products: ProductsSection) :
-        HomeUiState
+    data class Content(
+        val categories: List<CategoryUi>,
+        val selectedCategory: CategoryUi? = null,
+        val products: ProductsSection,
+        /** Pull-to-refresh in progress; the current products stay on screen meanwhile. */
+        val isRefreshing: Boolean = false,
+        /** A refresh failed. Shown once as a message, then cleared with [HomeEvent.RefreshErrorShown]. */
+        val refreshError: UiError? = null,
+    ) : HomeUiState
 }
 
 @Immutable
@@ -40,6 +48,8 @@ internal sealed interface ProductsSection {
 internal sealed interface HomeEvent {
     data class CategoryTapped(val category: CategoryUi) : HomeEvent
     data object Retry : HomeEvent
+    data object Refresh : HomeEvent
+    data object RefreshErrorShown : HomeEvent
 }
 
 internal class HomeViewModel(
@@ -62,6 +72,8 @@ internal class HomeViewModel(
         when (event) {
             is HomeEvent.CategoryTapped -> onCategoryTapped(event.category)
             HomeEvent.Retry -> retry()
+            HomeEvent.Refresh -> refresh()
+            HomeEvent.RefreshErrorShown -> _state.update { (it as? HomeUiState.Content)?.copy(refreshError = null) ?: it }
         }
     }
 
@@ -70,6 +82,54 @@ internal class HomeViewModel(
         val selected = content?.selectedCategory
         // Only the category failed: reload just that, keeping the chips on screen.
         if (selected != null && content.products is ProductsSection.Error) loadCategory(selected) else loadHome()
+    }
+
+    /** Reloads what's on screen (featured, categories, and the selected category) without blanking it. */
+    private fun refresh() {
+        // Nothing loaded yet: a pull is just a full load.
+        val content = _state.value as? HomeUiState.Content ?: return loadHome()
+        if (content.isRefreshing) return
+        // The refresh reloads the selected category too, so an in-flight load of it is redundant.
+        categoryJob?.cancel()
+        val selected = content.selectedCategory
+        _state.value = content.copy(isRefreshing = true, refreshError = null)
+
+        viewModelScope.launch {
+            val featuredResult = async { getFeaturedProducts() }
+            val categoriesResult = async { getCategories() }
+            val pageResult = selected?.let { async { getCategoryPage(CategorySlug(it.slug)) } }
+            val products = featuredResult.await()
+            val categories = categoriesResult.await()
+            val page = pageResult?.await()
+
+            _state.update { current ->
+                val latest = current as? HomeUiState.Content ?: return@update current
+                val failure = listOfNotNull(products, categories, page).filterIsInstance<DataResult.Failure>().firstOrNull()
+                if (failure != null) {
+                    // Keep what's on screen: a failed refresh shouldn't take the page away.
+                    return@update latest.copy(isRefreshing = false, refreshError = failure.error.toUiError())
+                }
+                featured = (products as DataResult.Success).data.map { it.toUi() }
+                latest.refreshedWith((categories as DataResult.Success).data.map { it.toUi() }, selected, page)
+            }
+        }
+    }
+
+    private fun HomeUiState.Content.refreshedWith(
+        categories: List<CategoryUi>,
+        refreshed: CategoryUi?,
+        page: DataResult<CategoryPage>?,
+    ): HomeUiState.Content {
+        val current = selectedCategory
+        return when {
+            // No category, or the selected one has gone from the catalogue: show the featured products.
+            current == null || categories.none { it.slug == current.slug } ->
+                copy(categories = categories, selectedCategory = null, products = ProductsSection.Featured(featured), isRefreshing = false)
+            current.slug == refreshed?.slug && page is DataResult.Success ->
+                copy(categories = categories, products = page.data.toSection(), isRefreshing = false)
+            // The customer picked another category mid-refresh; its own load fills the section.
+            else -> copy(categories = categories, isRefreshing = false)
+        }
     }
 
     private fun onCategoryTapped(category: CategoryUi) {
@@ -115,14 +175,15 @@ internal class HomeViewModel(
         }
         categoryJob = viewModelScope.launch {
             val section = when (val result = getCategoryPage(CategorySlug(category.slug))) {
-                is DataResult.Success -> ProductsSection.Category(
-                    topRated = result.data.topRated.map { it.toUi() },
-                    others = result.data.others.map { it.toUi() },
-                )
-
+                is DataResult.Success -> result.data.toSection()
                 is DataResult.Failure -> ProductsSection.Error(result.error.toUiError())
             }
             _state.update { current -> (current as? HomeUiState.Content)?.copy(products = section) ?: current }
         }
     }
 }
+
+private fun CategoryPage.toSection() = ProductsSection.Category(
+    topRated = topRated.map { it.toUi() },
+    others = others.map { it.toUi() },
+)

@@ -1,12 +1,14 @@
 package com.bosankus.officeworks.feature.catalogue.home
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -15,13 +17,19 @@ import androidx.compose.foundation.lazy.grid.LazyGridScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -34,6 +42,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bosankus.officeworks.core.ui.components.EmptyView
 import com.bosankus.officeworks.core.ui.components.ErrorView
 import com.bosankus.officeworks.core.ui.components.LoadingView
+import com.bosankus.officeworks.core.ui.components.message
 import com.bosankus.officeworks.core.ui.theme.Sizes
 import com.bosankus.officeworks.core.ui.theme.Spacing
 import com.bosankus.officeworks.feature.catalogue.CatalogueTestTags
@@ -60,29 +69,54 @@ fun HomeScreen(onSearch: (query: String) -> Unit, onProductClick: (productId: In
     HomeContent(state, viewModel::onEvent, onSearch, onProductClick)
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun HomeContent(state: HomeUiState, onEvent: (HomeEvent) -> Unit, onSearch: (String) -> Unit, onProductClick: (Int) -> Unit) {
     var query by rememberSaveable { mutableStateOf("") }
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    // A failed refresh keeps the products on screen, so it's reported in a snackbar rather than an error view.
+    val refreshError = (state as? HomeUiState.Content)?.refreshError
+    val refreshErrorMessage = refreshError?.message()
+    LaunchedEffect(refreshError) {
+        if (refreshErrorMessage != null) {
+            snackbarHostState.showSnackbar(refreshErrorMessage)
+            onEvent(HomeEvent.RefreshErrorShown)
+        }
+    }
 
     // Surface, not Modifier.background: it also sets the content colour, so text without an explicit
     // colour is light in dark theme instead of falling back to black.
     Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-        Column(Modifier.fillMaxSize().statusBarsPadding()) {
-            Header()
-            SearchField(
-                query = query,
-                onQueryChange = { query = it },
-                onSearch = { onSearch(query.trim()) },
-                modifier = Modifier.padding(horizontal = Spacing.medium),
-            )
-            when (state) {
-                HomeUiState.Loading -> LoadingView()
-                is HomeUiState.Error -> ErrorView(state.error, onRetry = { onEvent(HomeEvent.Retry) })
-                is HomeUiState.Content -> {
-                    CategoryChips(state.categories, state.selectedCategory, onEvent)
-                    ProductGrid { productsSection(state.products, state.selectedCategory, onEvent, onProductClick) }
+        Box(Modifier.fillMaxSize()) {
+            Column(Modifier.fillMaxSize().statusBarsPadding()) {
+                Header()
+                SearchField(
+                    query = query,
+                    onQueryChange = { query = it },
+                    onSearch = { onSearch(query.trim()) },
+                    modifier = Modifier.padding(horizontal = Spacing.medium),
+                )
+                when (state) {
+                    HomeUiState.Loading -> LoadingView()
+                    is HomeUiState.Error -> ErrorView(state.error, onRetry = { onEvent(HomeEvent.Retry) })
+                    is HomeUiState.Content -> {
+                        CategoryChips(state.categories, state.selectedCategory, onEvent)
+                        // Pull on the grid only: the chips above scroll sideways.
+                        PullToRefreshBox(
+                            isRefreshing = state.isRefreshing,
+                            onRefresh = { onEvent(HomeEvent.Refresh) },
+                            modifier = Modifier.fillMaxSize(),
+                        ) {
+                            ProductGrid { productsSection(state.products, state.selectedCategory, onEvent, onProductClick) }
+                        }
+                    }
                 }
             }
+            SnackbarHost(
+                snackbarHostState,
+                Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(Spacing.medium),
+            )
         }
     }
 }
