@@ -110,4 +110,14 @@ class EnquiryContentTest {
 
         onNodeWithText("reply to jane@example.com", substring = true).assertIsDisplayed()
     }
+
+    @Test
+    fun tapping_the_product_summary_goes_back_to_the_product() = runComposeUiTest {
+        var back = false
+        setContent { AppTheme { EnquiryContent(title, EnquiryUiState(), {}, { back = true }) } }
+
+        onNodeWithTag(EnquiryTestTags.PRODUCT_SUMMARY).performClick()
+
+        assertTrue(back)
+    }
 }

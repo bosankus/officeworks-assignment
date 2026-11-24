@@ -1,6 +1,7 @@
 package com.bosankus.officeworks.feature.enquiry
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -33,6 +34,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -74,6 +76,7 @@ import com.bosankus.officeworks.feature.enquiry.resources.section_message
 import com.bosankus.officeworks.feature.enquiry.resources.submit
 import com.bosankus.officeworks.feature.enquiry.resources.thank_you_body
 import com.bosankus.officeworks.feature.enquiry.resources.thank_you_title
+import com.bosankus.officeworks.feature.enquiry.resources.view_product
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.painterResource
@@ -107,13 +110,19 @@ internal fun EnquiryContent(productTitle: String, state: EnquiryUiState, onEvent
         if (submitted) {
             ThankYou(productTitle, state.form.email.trim(), onBack, modifier)
         } else {
-            EnquiryForm(productTitle, state, onEvent, modifier)
+            EnquiryForm(productTitle, state, onEvent, onBack, modifier)
         }
     }
 }
 
 @Composable
-private fun EnquiryForm(productTitle: String, state: EnquiryUiState, onEvent: (EnquiryEvent) -> Unit, modifier: Modifier) {
+private fun EnquiryForm(
+    productTitle: String,
+    state: EnquiryUiState,
+    onEvent: (EnquiryEvent) -> Unit,
+    onViewProduct: () -> Unit,
+    modifier: Modifier,
+) {
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -121,7 +130,7 @@ private fun EnquiryForm(productTitle: String, state: EnquiryUiState, onEvent: (E
             .padding(horizontal = Spacing.medium, vertical = Spacing.small),
         verticalArrangement = Arrangement.spacedBy(Spacing.medium),
     ) {
-        ProductSummary(productTitle, state.product)
+        ProductSummary(productTitle, state.product, onViewProduct)
         Text(
             stringResource(Res.string.enquiry_intro),
             style = MaterialTheme.typography.bodyMedium,
@@ -185,14 +194,17 @@ private fun EnquiryForm(productTitle: String, state: EnquiryUiState, onEvent: (E
 }
 
 @Composable
-private fun ProductSummary(title: String, product: EnquiryProductUi?) {
+private fun ProductSummary(title: String, product: EnquiryProductUi?, onClick: () -> Unit) {
     Surface(
         shape = MaterialTheme.shapes.medium,
         color = MaterialTheme.colorScheme.surfaceVariant,
         modifier = Modifier.fillMaxWidth().testTag(EnquiryTestTags.PRODUCT_SUMMARY),
     ) {
         Row(
-            modifier = Modifier.padding(Spacing.small + Spacing.extraSmall),
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(onClickLabel = stringResource(Res.string.view_product), role = Role.Button, onClick = onClick)
+                .padding(Spacing.small + Spacing.extraSmall),
             horizontalArrangement = Arrangement.spacedBy(Spacing.medium),
             verticalAlignment = Alignment.CenterVertically,
         ) {
