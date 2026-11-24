@@ -1,0 +1,6 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp" android:height="24dp" android:viewportWidth="24" android:viewportHeight="24">
+    <!-- Same path as the outlined icon, filled and stroked so both render at the same size. -->
+    <path android:strokeColor="#FF000000" android:strokeWidth="1.8" android:strokeLineJoin="round"
+        android:fillColor="#FF000000" android:pathData="M3.5,3.5h7.6l9.4,9.4 -7.6,7.6 -9.4,-9.4z" />
+</vector>

@@ -1,0 +1,4 @@
+<resources>
+    <!-- Window theme only, to avoid a flash before Compose draws. Compose's AppTheme handles the UI. -->
+    <style name="Theme.Officeworks" parent="android:Theme.Material.Light.NoActionBar" />
+</resources>
