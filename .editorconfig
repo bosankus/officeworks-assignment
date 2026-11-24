@@ -1,0 +1,19 @@
+root = true
+
+# Kotlin only: the backend has its own formatting settings.
+[*.{kt,kts}]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+indent_style = space
+indent_size = 4
+max_line_length = 140
+ktlint_code_style = intellij_idea
+# Composables are PascalCase by convention.
+ktlint_function_naming_ignore_when_annotated_with = Composable
+# Compose and Ktor use PascalCase for colour schemes and attribute keys (LightColors, CallStart).
+ktlint_standard_property-naming = disabled
+
+[**/androidDeviceTest/**.kt]
+# Device test names use underscores because DEX doesn't allow spaces in method names.
+ktlint_standard_function-naming = disabled
