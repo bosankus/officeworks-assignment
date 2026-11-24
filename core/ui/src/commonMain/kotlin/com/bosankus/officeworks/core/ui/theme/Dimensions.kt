@@ -26,6 +26,10 @@ object Sizes {
     val progressStroke = 2.dp
     val badgeCornerRadius = 8.dp
 
+    /** Category chips: drawn smaller than [touchTarget]; the tap area is still padded out to 48dp. */
+    val chipHeight = 36.dp
+    val chipCornerRadius = 8.dp
+
     /** Narrowest a product tile may get before the grid drops a column. */
     val productTileMinWidth = 150.dp
 }

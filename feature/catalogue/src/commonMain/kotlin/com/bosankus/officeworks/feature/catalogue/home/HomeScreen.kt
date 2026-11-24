@@ -16,10 +16,11 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.LazyGridScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.selection.selectable
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
@@ -171,7 +172,8 @@ private fun LazyGridScope.productsSection(
 @Composable
 private fun CategoryChips(categories: List<CategoryUi>, selected: CategoryUi?, onEvent: (HomeEvent) -> Unit) {
     LazyRow(
-        contentPadding = PaddingValues(horizontal = Spacing.medium, vertical = Spacing.medium),
+        // Each chip already reserves a 48dp tap area, so the row needs less vertical padding of its own.
+        contentPadding = PaddingValues(horizontal = Spacing.medium, vertical = Spacing.small),
         horizontalArrangement = Arrangement.spacedBy(Spacing.small),
     ) {
         items(categories, key = { it.slug }) { category ->
@@ -186,18 +188,22 @@ private fun CategoryChips(categories: List<CategoryUi>, selected: CategoryUi?, o
     }
 }
 
-/** Pill with the category icon: outlined by default, filled when selected. Icon and label share a colour in both themes. */
+/**
+ * Rounded-rectangle chip with the category icon: outlined by default, filled when selected. Icon and label share a
+ * colour in both themes. Drawn at [Sizes.chipHeight], but the tap area stays 48dp, as with Material chips.
+ */
 @Composable
 private fun CategoryPill(label: String, icon: CategoryIcon, selected: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
     val colors = MaterialTheme.colorScheme
     val contentColor = if (selected) colors.onPrimary else colors.onSurfaceVariant
     Row(
         modifier = modifier
-            .clip(CircleShape)
+            .minimumInteractiveComponentSize()
+            .clip(RoundedCornerShape(Sizes.chipCornerRadius))
             .background(if (selected) colors.primary else colors.surfaceVariant)
             .selectable(selected = selected, role = Role.Tab, onClick = onClick)
-            .heightIn(min = Sizes.touchTarget)
-            .padding(horizontal = Spacing.medium),
+            .heightIn(min = Sizes.chipHeight)
+            .padding(horizontal = Spacing.small + Spacing.extraSmall),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Spacing.small),
     ) {
@@ -205,7 +211,7 @@ private fun CategoryPill(label: String, icon: CategoryIcon, selected: Boolean, o
             painter = painterResource(if (selected) icon.filled else icon.outlined),
             contentDescription = null,
             tint = contentColor,
-            modifier = Modifier.size(Sizes.iconMedium),
+            modifier = Modifier.size(Sizes.iconSmall),
         )
         Text(label, style = MaterialTheme.typography.labelLarge, color = contentColor)
     }
