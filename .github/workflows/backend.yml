@@ -1,0 +1,79 @@
+name: Backend
+
+on:
+  pull_request:
+    paths: ['backend/**', 'docker-compose.yml', '.github/workflows/backend.yml']
+  push:
+    branches: [main]
+    paths: ['backend/**', 'docker-compose.yml', '.github/workflows/backend.yml']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backend-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Typecheck, lint, test, build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - run: npm ci
+      - run: npm run check
+      - run: npm run build
+
+  smoke:
+    name: docker compose smoke test
+    needs: check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      # The exact command the README gives reviewers. --wait blocks until the backend's healthcheck passes.
+      - name: Start backend and Mailpit
+        run: docker compose up --build --detach --wait --wait-timeout 120
+
+      - name: Health
+        run: curl --fail --silent http://localhost:3000/health
+
+      - name: Browse and enquire against live Fake Store
+        run: |
+          status=$(curl --silent --output featured.json --write-out '%{http_code}' http://localhost:3000/api/v1/products/featured)
+          if [ "$status" = "502" ]; then
+            # Fake Store is a third-party service we don't control; don't fail the build on its outages.
+            echo "::warning::Fake Store unreachable from the runner (502); skipping live checks"
+            exit 0
+          fi
+          test "$status" = "200"
+          test "$(jq length featured.json)" = "5"
+
+          curl --fail --silent "http://localhost:3000/api/v1/products?query=jacket" | jq -e 'length > 0'
+
+          body='{"productId":3,"name":"CI Smoke","email":"ci@example.com","message":"Smoke test"}'
+          for attempt in 1 2; do   # the retry must not send a second email
+            curl --fail --silent -X POST http://localhost:3000/api/v1/enquiries \
+              -H 'content-type: application/json' -H 'idempotency-key: ci-smoke-1' -d "$body" \
+              | jq -e '.enquiryId | startswith("enq_")'
+          done
+
+          sleep 1
+          curl --fail --silent http://localhost:8025/api/v1/messages \
+            | jq -e '.total == 1 and .messages[0].Subject == "New enquiry: Mens Cotton Jacket (#3)"'
+
+      - name: Logs on failure
+        if: failure()
+        run: docker compose logs
+
+      - name: Stop
+        if: always()
+        run: docker compose down
