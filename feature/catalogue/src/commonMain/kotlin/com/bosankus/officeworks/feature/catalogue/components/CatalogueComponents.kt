@@ -49,10 +49,6 @@ import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import com.bosankus.officeworks.core.ui.resources.Res as CoreRes
 
-// Content types let the grid reuse item compositions of the same kind while scrolling.
-private const val TYPE_PRODUCT = "product"
-private const val TYPE_STATUS = "status"
-
 /**
  * Shared UI components for the catalogue feature.
  * Provides adaptive grids, product item lists, headers, and search controls.
@@ -82,14 +78,15 @@ internal fun ProductGrid(
  * Adds a full-width item spanning across all grid columns.
  */
 internal fun LazyGridScope.fullWidthItem(key: String, content: @Composable () -> Unit) {
-    item(key = key, span = { GridItemSpan(maxLineSpan) }, contentType = TYPE_STATUS) { content() }
+    // contentType lets the grid reuse compositions of the same kind while scrolling: status rows vs product tiles.
+    item(key = key, span = { GridItemSpan(maxLineSpan) }, contentType = "status") { content() }
 }
 
 /**
  * Populates a grid with product cards from a list of UI product models.
  */
 internal fun LazyGridScope.productItems(products: List<ProductUi>, onProductClick: (Int) -> Unit) {
-    items(products, key = { "product_${it.id}" }, contentType = { TYPE_PRODUCT }) { product ->
+    items(products, key = { "product_${it.id}" }, contentType = { "product" }) { product ->
         ProductCard(
             title = product.title,
             price = product.price,
