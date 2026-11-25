@@ -37,10 +37,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import kotlin.test.fail
 
-/**
- * Parses responses captured from the real backend (scripts/capture-contract-fixtures.sh).
- * If the backend's JSON changes shape, these fail before the app does.
- */
 class BackendContractTest {
 
     private fun fixture(name: String): String {

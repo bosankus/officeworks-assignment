@@ -9,12 +9,6 @@ import kotlin.test.assertTrue
 
 class AppModulesTest {
 
-    /**
-     * Builds every definition in the graph, so a missing binding fails here and not when a screen opens.
-     * New definitions are picked up automatically; there's no list to keep in sync.
-     * ViewModels are skipped: they need navigation arguments and the main thread. AppNavigationTest
-     * builds each of them through this same graph on a device.
-     */
     @OptIn(KoinInternalApi::class)
     @Test
     fun `every definition resolves`() {
@@ -23,6 +17,7 @@ class AppModulesTest {
         val definitions = koin.instanceRegistry.instances.values
             .map { it.beanDefinition }
             .distinct()
+            // ViewModels need navigation arguments and the main thread; AppNavigationTest builds them on a device.
             .filterNot { ViewModel::class.java.isAssignableFrom(it.primaryType.java) }
 
         // Guards against the test passing because it found nothing to check.

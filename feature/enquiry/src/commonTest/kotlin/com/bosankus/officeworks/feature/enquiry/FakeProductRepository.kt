@@ -10,7 +10,6 @@ import com.bosankus.officeworks.core.domain.repository.ProductRepository
 import com.bosankus.officeworks.core.domain.result.DataError
 import com.bosankus.officeworks.core.domain.result.DataResult
 
-/** The enquiry screen only reads one product, for its summary card. Not found by default, so the card shows the title alone. */
 internal class FakeProductRepository(var product: DataResult<Product> = DataResult.Failure(DataError.NotFound)) : ProductRepository {
     override suspend fun getProduct(id: ProductId) = product
     override suspend fun getFeaturedProducts(): DataResult<List<Product>> = DataResult.Success(emptyList())

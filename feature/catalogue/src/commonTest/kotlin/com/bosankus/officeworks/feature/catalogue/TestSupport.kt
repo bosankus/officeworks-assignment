@@ -16,7 +16,6 @@ import kotlinx.coroutines.test.setMain
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 
-/** ViewModels launch on Main; tests swap it for a test dispatcher that runTest then drives. */
 @OptIn(ExperimentalCoroutinesApi::class)
 abstract class MainDispatcherTest {
     @BeforeTest

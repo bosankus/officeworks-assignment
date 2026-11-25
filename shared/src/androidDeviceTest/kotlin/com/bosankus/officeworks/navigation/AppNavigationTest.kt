@@ -35,10 +35,6 @@ import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
-/**
- * The real app (navigation, Koin graph, ViewModels, use cases) with only the repositories faked,
- * so a broken route or a ViewModel Koin can't build fails here rather than on a device.
- */
 @OptIn(ExperimentalTestApi::class)
 class AppNavigationTest {
 
