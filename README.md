@@ -1,21 +1,78 @@
 # Officeworks catalogue PoC
 
-A product catalogue where customers browse, search and enquire about products.
-An Android app built with Kotlin Multiplatform and Compose Multiplatform, with light and dark themes,
-backed by a Node.js + TypeScript API over the Fake Store API.
+An Android app for browsing, searching and enquiring about products, with a small backend in front of
+the [Fake Store API](https://fakestoreapi.com). Enquiries are emailed to a sales inbox.
 
-## What the app does
+Kotlin Multiplatform + Compose Multiplatform (Android target only for now), and a Node.js + TypeScript
+backend. Why: [DECISIONS.md](DECISIONS.md).
 
-- **Home**: search bar, category chips (outlined icon; filled and highlighted when selected) and the
-  5 featured products. Selecting a category filters the page in place: its 3 top-rated products, then
-  the rest. Tapping the selected chip again returns to the featured products. Pull down to refresh.
-- **Search**: results for the typed term, or an empty state.
-- **Product detail**: image, price badge, category, rating, title and description, with a pinned **Enquire** button.
-- **Enquiry**: a card at the top shows the product (photo, title, price) and taps back to it. Name and email
-  (required), phone and message (optional), inline validation, and a Send button that stays above the
-  keyboard. The thank-you screen names the email the reply will go to. The sales inbox receives one email
-  per enquiry, even if the customer retries.
-- Every screen has loading, error (with retry) and empty states, in light and dark themes.
+## Run it
+
+You need **[Docker Desktop](https://www.docker.com/products/docker-desktop/)** and
+**[Android Studio](https://developer.android.com/studio)**. Works on macOS, Windows and Linux.
+
+**1. Start the backend** (from the project folder; leave it running)
+
+```bash
+docker compose up --build
+```
+
+Ready when http://localhost:3000/api/v1/products/featured shows 5 products.
+
+**2. Open the project in Android Studio and start an emulator**
+
+Opening it once lets Android Studio find your Android SDK. Then **Device Manager** → ▶ on any phone.
+
+**3. Install the app**
+
+| macOS / Linux | Windows |
+|---|---|
+| `./gradlew :androidApp:installDebug` | `gradlew.bat :androidApp:installDebug` |
+
+Or in Android Studio, pick **androidApp** and press ▶ Run. If the command line says Java is missing,
+use the Run button, or point `JAVA_HOME` at the JDK bundled with Android Studio.
+
+**4. Try it**
+
+| Check | How |
+|---|---|
+| 5 featured products | Open the app |
+| Category: 3 top rated, then the rest | Tap a category chip; tap it again to go back |
+| Search | Type "jacket" and press search; "zzzz" shows the empty state |
+| Product page | Tap any product |
+| Enquiry | Product → **Enquire** → fill in name and email → **Send** → "Thank you". The email arrives at http://localhost:8025 |
+
+<details>
+<summary>No Docker? Run the backend with Node 22+ and Mailpit instead</summary>
+
+Install [Mailpit](https://mailpit.axllent.org/docs/install/) (catches the enquiry emails):
+
+| macOS | Linux | Windows |
+|---|---|---|
+| `brew install mailpit` | `sudo sh < <(curl -sL https://raw.githubusercontent.com/axllent/mailpit/develop/install.sh)` | Download from [Mailpit releases](https://github.com/axllent/mailpit/releases) |
+
+Then, in two terminals:
+
+```bash
+mailpit                                 # terminal 1
+cd backend && npm install && npm run dev  # terminal 2
+```
+
+On Windows PowerShell 5, run the second line as `cd backend`, `npm install`, `npm run dev`.
+Every backend setting has a working default; `backend/.env.example` lists them.
+
+</details>
+
+<details>
+<summary>Real phone or another machine?</summary>
+
+The emulator reaches your computer at `10.0.2.2`. For anything else, pass the backend's address:
+
+```bash
+./gradlew :androidApp:installDebug -Pofficeworks.baseUrl=http://192.168.1.20:3000/api/v1/
+```
+
+</details>
 
 ## How it fits together
 
@@ -27,155 +84,54 @@ flowchart LR
         VM --> UC["Use cases<br/>core:domain"]
         UC --> Repo["Repositories + Ktor client<br/>core:data"]
     end
-    Repo -- "JSON over /api/v1" --> API["Backend<br/>Node.js + Fastify"]
+    Repo -- "REST API (API_CONTRACT.md)" --> API["Backend<br/>Node.js + Fastify"]
     API -- "catalogue, cached 5 min" --> FS["Fake Store API"]
     API -- "enquiry email, SMTP" --> Mail["Sales inbox<br/>Mailpit locally"]
     UI -. "product images only" .-> FS
 ```
 
-The app talks only to the backend. The backend reads the catalogue from Fake Store and emails each
-enquiry to sales; the idempotency key sent with an enquiry means a retry can't email twice.
+The app talks only to the backend. Each enquiry carries an idempotency key, so a retry can't email
+sales twice.
 
-## Stack choice
+## Run the checks
 
-- **Client: Android (Kotlin).** Code is structured as Kotlin Multiplatform with Compose Multiplatform UI,
-  so an iOS app can be added later without a rewrite. There is no iOS target in this submission.
-- **Backend: Node.js + TypeScript** (Fastify) in [`backend/`](backend/README.md). It implements
-  [API_CONTRACT.md](API_CONTRACT.md) over the Fake Store API and emails enquiries over SMTP
-  (Mailpit locally, so no accounts are needed). TypeScript because the brief prefers it; Fastify and
-  zod give typed validation and fast in-process tests with little code.
-
-Why: Kotlin and Compose are my strongest stack, and keeping domain, data and UI in shared Kotlin
-modules enforces the boundaries the brief asks for. Full reasoning is in [DECISIONS.md](DECISIONS.md).
-
-## Project structure
-
-```
-backend/             Node.js API (see backend/README.md)
-docker-compose.yml   Backend + Mailpit (local mail catcher) in one command
-scripts/             Contract fixture capture
-androidApp/          Android entry point
-shared/              App shell: navigation, DI wiring
-core/domain/         Models, repository interfaces, use cases (pure Kotlin)
-core/data/           API client, DTOs, mappers, repositories
-core/ui/             Theme (light/dark) and shared components
-feature/catalogue/   Home (with category filter), search, product detail
-feature/enquiry/     Enquiry form and thank-you state
-```
-
-## Requirements
-
-- JDK 17+
-- Android Studio (latest stable) with an Android emulator
-- For the backend, either Docker, or Node 22+ and [Mailpit](https://mailpit.axllent.org)
-
-## Run
-
-### 1. Backend
+One command runs everything in order, like CI: format and lint → unit tests → UI tests → release build →
+install. It needs an emulator running, not the backend.
 
 ```bash
-docker compose up --build
+./scripts/ci.sh          # add --fix to auto-format first
 ```
 
-API on http://localhost:3000 (the emulator reaches it at `http://10.0.2.2:3000/api/v1/`).
-Enquiry emails land in Mailpit at http://localhost:8025. More in [backend/README.md](backend/README.md).
+On Windows, run it from Git Bash or WSL. Backend checks: `cd backend && npm run check` (also run by
+GitHub Actions on every PR that touches `backend/`).
 
-Without Docker (macOS), use two terminal tabs and leave both running:
-
-```bash
-brew install mailpit && mailpit                                  # tab 1: mail catcher
-cd backend && cp .env.example .env && npm install && npm run dev  # tab 2: API
-```
-
-Check it's up: `curl localhost:3000/api/v1/products/featured` returns 5 products.
-
-### 2. Android app
-
-The app has no offline or demo data: **start the backend first**, then:
-
-```bash
-./gradlew :androidApp:installDebug
-```
-
-Or select `androidApp` in Android Studio and run it on an emulator.
-
-### 3. Walk the acceptance criteria
-
-| Criterion | Where to see it |
+| Step | What it checks |
 |---|---|
-| Home: 5 featured products | Home screen, in the order set by `FEATURED_PRODUCT_IDS` |
-| Category: top rated, then the rest | Tap a category chip on Home |
-| Search | Search bar, e.g. "jacket"; "zzzz" shows the empty state |
-| Product page | Tap any product tile |
-| Enquiry | Product page -> Enquire -> submit -> "Thank you"; the email appears at http://localhost:8025 |
+| 1 | ktlint and Compose rules on every Kotlin file |
+| 2 | Unit tests in every module (JVM) |
+| 3 | Compose UI tests and whole-app navigation tests on the emulator |
+| 4 | Release build with R8 (built, not installed) |
+| 5 | Installs the debug app |
 
-## Configuration
+After a backend change, refresh the app's contract test data (backend running):
+`./scripts/capture-contract-fixtures.sh`.
 
-| Gradle property | Default | Meaning |
-|---|---|---|
-| `officeworks.baseUrl` | `http://10.0.2.2:3000/api/v1/` | Backend base URL. `10.0.2.2` is the Mac as seen from the emulator. |
+## Project layout
 
-It's read into `BuildConfig.BASE_URL`. To point at another backend:
-
-```bash
-./gradlew :androidApp:installDebug -Pofficeworks.baseUrl=http://192.168.1.20:3000/api/v1/
+```
+backend/            Node.js + TypeScript API (backend/README.md)
+androidApp/         Android entry point
+shared/             App shell: navigation and dependency wiring
+core/domain/        Models, repository interfaces, use cases (pure Kotlin)
+core/data/          API client, DTOs, repositories
+core/ui/            Theme (light/dark) and shared components
+feature/catalogue/  Home, category filter, search, product page
+feature/enquiry/    Enquiry form and thank-you screen
 ```
 
-Or put it in `~/.gradle/gradle.properties`. Debug builds allow plain HTTP to `10.0.2.2` and
-`localhost` only; release builds are HTTPS-only.
+## More
 
-## Checks and tests
-
-### Full pipeline, one command
-
-With an emulator running:
-
-```bash
-./scripts/ci.sh          # format check -> unit tests -> UI tests -> release build -> install the debug app
-./scripts/ci.sh --fix    # same, but formats the code first instead of failing on style
-```
-
-It runs these steps in order and stops at the first failure, like a CI pipeline:
-
-| Step | Gradle task | What it checks |
-|---|---|---|
-| 1 | `spotlessCheck` (or `spotlessApply` with `--fix`) | Formatting and lint: ktlint on every `.kt` and `.gradle.kts` file |
-| 2 | `testAndroidHostTest --continue` | Unit tests in every module, on the JVM |
-| 3 | `connectedAndroidDeviceTest` | Compose UI tests on the emulator, including navigation through the whole app |
-| 4 | `:androidApp:assembleRelease` | Release build with R8, to catch shrinking problems. Built, not installed |
-| 5 | `:androidApp:installDebug` | Builds the app and installs it on the emulator |
-
-The script checks for a connected emulator before starting. The tests don't need the backend; the
-installed app does, to show data.
-
-### Individual steps
-
-```bash
-./gradlew spotlessApply                           # fix formatting
-./gradlew testAndroidHostTest --continue          # app unit tests, every module (JVM, no emulator)
-./gradlew connectedAndroidDeviceTest              # Compose UI tests, needs a running emulator
-(cd backend && npm install && npm run check)      # backend: typecheck, lint, tests with a coverage floor
-```
-
-ktlint rules are in `.editorconfig`, so Android Studio formats the same way.
-
-The backend also runs in GitHub Actions (`.github/workflows/backend.yml`) on every PR that touches it:
-`npm run check`, a build, then `docker compose up` with an enquiry sent twice to check exactly one email
-reaches Mailpit.
-
-Each module writes an HTML report to `build/reports/tests/`. There is no coverage report for the app
-yet; see DECISIONS.md.
-
-`core:data` has contract tests that parse JSON captured from the real backend
-(`core/data/src/commonTest/fixtures/`). After a backend change, re-capture with the backend running:
-
-```bash
-./scripts/capture-contract-fixtures.sh
-```
-
-## Docs
-
-- [DECISIONS.md](DECISIONS.md): assumptions, cuts, how it grows, next steps
-- [API_CONTRACT.md](API_CONTRACT.md): the backend contract the app is built against
-- [AI_USAGE.md](AI_USAGE.md): how AI tools were used
-- [CLAUDE.md](CLAUDE.md): rules for AI agents in this repo
+- [DECISIONS.md](DECISIONS.md): why it's built this way, assumptions, what was cut, known limitations
+- [API_CONTRACT.md](API_CONTRACT.md): the API both sides are built against
+- [AI_USAGE.md](AI_USAGE.md): how AI was used, and where it got things wrong
+- [CLAUDE.md](CLAUDE.md): rules for AI agents working in this repo
