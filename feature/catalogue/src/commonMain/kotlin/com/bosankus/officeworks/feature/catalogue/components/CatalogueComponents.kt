@@ -19,6 +19,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
@@ -40,7 +41,9 @@ import com.bosankus.officeworks.core.ui.theme.Spacing
 import com.bosankus.officeworks.feature.catalogue.CatalogueTestTags
 import com.bosankus.officeworks.feature.catalogue.model.ProductUi
 import com.bosankus.officeworks.feature.catalogue.resources.Res
+import com.bosankus.officeworks.feature.catalogue.resources.ic_close
 import com.bosankus.officeworks.feature.catalogue.resources.search_button
+import com.bosankus.officeworks.feature.catalogue.resources.search_clear
 import com.bosankus.officeworks.feature.catalogue.resources.search_hint
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
@@ -88,6 +91,7 @@ internal fun LazyGridScope.productItems(products: List<ProductUi>, onProductClic
     }
 }
 
+//
 @Composable
 internal fun SectionHeader(text: String) {
     Text(
@@ -98,10 +102,14 @@ internal fun SectionHeader(text: String) {
     )
 }
 
-/** Pill-shaped search field with a round submit button, per the design. */
+/**
+ * Search field with a round submit button. Empty, it shows a search icon; with text, a clear button
+ * instead. Never both.
+ */
 @Composable
 internal fun SearchField(query: String, onQueryChange: (String) -> Unit, onSearch: () -> Unit, modifier: Modifier = Modifier) {
     val canSearch = query.isNotBlank()
+    val hasText = query.isNotEmpty()
     Row(
         modifier = modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
@@ -113,7 +121,26 @@ internal fun SearchField(query: String, onQueryChange: (String) -> Unit, onSearc
             singleLine = true,
             shape = CircleShape,
             placeholder = { Text(stringResource(Res.string.search_hint)) },
-            leadingIcon = { Icon(painterResource(CoreRes.drawable.ic_search), contentDescription = null) },
+            leadingIcon = if (hasText) {
+                null
+            } else {
+                {
+                    Icon(
+                        painterResource(CoreRes.drawable.ic_search),
+                        contentDescription = null,
+                        modifier = Modifier.testTag(CatalogueTestTags.SEARCH_ICON),
+                    )
+                }
+            },
+            trailingIcon = if (hasText) {
+                {
+                    IconButton(onClick = { onQueryChange("") }, modifier = Modifier.testTag(CatalogueTestTags.SEARCH_CLEAR)) {
+                        Icon(painterResource(Res.drawable.ic_close), contentDescription = stringResource(Res.string.search_clear))
+                    }
+                }
+            } else {
+                null
+            },
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
             keyboardActions = KeyboardActions(onSearch = { if (canSearch) onSearch() }),
             colors = TextFieldDefaults.colors(

@@ -49,4 +49,23 @@ class SearchContentTest {
         assertTrue(events.first() is SearchEvent.QueryChanged)
         assertEquals(SearchEvent.Submit, events.last())
     }
+
+    @Test
+    fun text_shows_only_the_clear_button_which_empties_the_query() = runComposeUiTest {
+        val events = mutableListOf<SearchEvent>()
+        setContent { AppTheme { SearchContent(SearchUiState("bag"), { events += it }, {}, {}) } }
+
+        onNodeWithTag(CatalogueTestTags.SEARCH_ICON).assertDoesNotExist()
+        onNodeWithTag(CatalogueTestTags.SEARCH_CLEAR).assertIsDisplayed().performClick()
+
+        assertEquals(listOf<SearchEvent>(SearchEvent.QueryChanged("")), events)
+    }
+
+    @Test
+    fun empty_field_shows_the_search_icon_and_no_clear_button() = runComposeUiTest {
+        setContent { AppTheme { SearchContent(SearchUiState(""), {}, {}, {}) } }
+
+        onNodeWithTag(CatalogueTestTags.SEARCH_ICON).assertIsDisplayed()
+        onNodeWithTag(CatalogueTestTags.SEARCH_CLEAR).assertDoesNotExist()
+    }
 }

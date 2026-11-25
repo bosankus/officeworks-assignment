@@ -77,6 +77,9 @@ class HomeContentTest {
         onNodeWithTag(CatalogueTestTags.SEARCH_BUTTON).assertIsEnabled().performClick()
 
         assertEquals("backpack", searched)
+        // The field is emptied, so it's blank when the customer comes back from the results.
+        onNodeWithTag(CatalogueTestTags.SEARCH_CLEAR).assertDoesNotExist()
+        onNodeWithTag(CatalogueTestTags.SEARCH_ICON).assertIsDisplayed()
     }
 
     @Test
