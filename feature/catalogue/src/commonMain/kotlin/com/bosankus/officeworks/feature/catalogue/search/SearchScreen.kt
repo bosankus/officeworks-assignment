@@ -37,7 +37,7 @@ fun SearchScreen(query: String, onBack: () -> Unit, onProductClick: (productId: 
 
 @Composable
 internal fun SearchContent(state: SearchUiState, onEvent: (SearchEvent) -> Unit, onBack: () -> Unit, onProductClick: (Int) -> Unit) {
-    Scaffold(topBar = { AppTopBar(stringResource(Res.string.search_title), onBack) }) { padding ->
+    Scaffold(topBar = { AppTopBar(stringResource(Res.string.search_title), onBack = onBack) }) { padding ->
         Column(
             modifier = Modifier.fillMaxSize().padding(padding),
             verticalArrangement = Arrangement.spacedBy(Spacing.medium),

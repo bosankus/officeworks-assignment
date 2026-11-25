@@ -33,6 +33,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -83,10 +84,12 @@ internal fun HomeContent(state: HomeUiState, onEvent: (HomeEvent) -> Unit, onSea
 
     val refreshError = (state as? HomeUiState.Content)?.refreshError
     val refreshErrorMessage = refreshError?.message()
+    // The effect restarts only for a new error, so it reads the latest callback rather than the one it started with.
+    val currentOnEvent by rememberUpdatedState(onEvent)
     LaunchedEffect(refreshError) {
         if (refreshErrorMessage != null) {
             snackbarHostState.showSnackbar(refreshErrorMessage)
-            onEvent(HomeEvent.RefreshErrorShown)
+            currentOnEvent(HomeEvent.RefreshErrorShown)
         }
     }
 

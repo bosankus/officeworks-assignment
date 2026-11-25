@@ -40,9 +40,9 @@ private const val TITLE_MAX_LINES = 2
  * Pass `onBack` for every screen except the home page.
  */
 @Composable
-fun AppTopBar(title: String, onBack: (() -> Unit)? = null, trailing: (@Composable () -> Unit)? = null) {
+fun AppTopBar(title: String, modifier: Modifier = Modifier, onBack: (() -> Unit)? = null, trailing: (@Composable () -> Unit)? = null) {
     Box(
-        modifier = Modifier.fillMaxWidth().statusBarsPadding().heightIn(min = Sizes.topBarHeight).padding(start = Spacing.medium),
+        modifier = modifier.fillMaxWidth().statusBarsPadding().heightIn(min = Sizes.topBarHeight).padding(start = Spacing.medium),
         contentAlignment = Alignment.CenterStart,
     ) {
         if (onBack != null) BackButton(onBack)

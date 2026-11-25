@@ -58,11 +58,7 @@ import com.bosankus.officeworks.core.ui.resources.Res as CoreRes
  * Renders an adaptive vertical grid for catalogue product items.
  */
 @Composable
-internal fun ProductGrid(
-    modifier: Modifier = Modifier,
-    bottomInset: WindowInsets = WindowInsets(0),
-    content: LazyGridScope.() -> Unit,
-) {
+internal fun ProductGrid(modifier: Modifier = Modifier, bottomInset: WindowInsets = WindowInsets(0), content: LazyGridScope.() -> Unit) {
     val bottom = Spacing.large + bottomInset.asPaddingValues().calculateBottomPadding()
     LazyVerticalGrid(
         columns = GridCells.Adaptive(minSize = Sizes.productTileMinWidth),

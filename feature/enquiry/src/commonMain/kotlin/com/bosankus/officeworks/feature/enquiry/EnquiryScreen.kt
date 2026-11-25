@@ -101,7 +101,7 @@ internal fun EnquiryContent(productTitle: String, state: EnquiryUiState, onEvent
     Scaffold(
         topBar = {
             if (!submitted) {
-                AppTopBar(stringResource(Res.string.enquiry_title), onBack)
+                AppTopBar(stringResource(Res.string.enquiry_title), onBack = onBack)
             }
         },
         bottomBar = {
@@ -125,7 +125,7 @@ private fun EnquiryForm(
     state: EnquiryUiState,
     onEvent: (EnquiryEvent) -> Unit,
     onViewProduct: () -> Unit,
-    modifier: Modifier,
+    modifier: Modifier = Modifier,
 ) {
     val submitting = state.status == EnquiryStatus.Submitting
     Column(
@@ -352,7 +352,7 @@ private fun SendBar(submitting: Boolean, onSend: () -> Unit) {
 }
 
 @Composable
-private fun ThankYou(productTitle: String, email: String, onBack: () -> Unit, modifier: Modifier) {
+private fun ThankYou(productTitle: String, email: String, onBack: () -> Unit, modifier: Modifier = Modifier) {
     Column(
         modifier = modifier
             .fillMaxSize()

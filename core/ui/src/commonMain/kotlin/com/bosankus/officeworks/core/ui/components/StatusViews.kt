@@ -48,7 +48,7 @@ fun EmptyView(message: String, modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun CenteredMessage(message: String, modifier: Modifier, action: @Composable () -> Unit = {}) {
+private fun CenteredMessage(message: String, modifier: Modifier = Modifier, action: @Composable () -> Unit = {}) {
     Column(
         modifier = modifier.fillMaxSize().padding(Spacing.large),
         verticalArrangement = Arrangement.spacedBy(Spacing.medium, Alignment.CenterVertically),

@@ -9,9 +9,9 @@ import com.bosankus.officeworks.core.ui.theme.AppTheme
 import com.bosankus.officeworks.navigation.AppNavHost
 
 @Composable
-fun App() {
+fun App(modifier: Modifier = Modifier) {
     AppTheme {
-        Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+        Surface(modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
             AppNavHost()
         }
     }

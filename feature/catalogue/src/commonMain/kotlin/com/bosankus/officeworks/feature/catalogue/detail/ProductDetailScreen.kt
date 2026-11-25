@@ -116,7 +116,7 @@ private fun PriceBadge(price: String) {
 }
 
 @Composable
-private fun ProductDetails(product: ProductUi, modifier: Modifier) {
+private fun ProductDetails(product: ProductUi, modifier: Modifier = Modifier) {
     Column(
         modifier = modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = Spacing.medium),
         verticalArrangement = Arrangement.spacedBy(Spacing.medium),
