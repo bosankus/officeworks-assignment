@@ -55,7 +55,7 @@ class SearchContentTest {
         val events = mutableListOf<SearchEvent>()
         setContent { AppTheme { SearchContent(SearchUiState("bag"), { events += it }, {}, {}) } }
 
-        onNodeWithTag(CatalogueTestTags.SEARCH_ICON).assertDoesNotExist()
+        onNodeWithTag(CatalogueTestTags.SEARCH_ICON, useUnmergedTree = true).assertDoesNotExist()
         onNodeWithTag(CatalogueTestTags.SEARCH_CLEAR).assertIsDisplayed().performClick()
 
         assertEquals(listOf<SearchEvent>(SearchEvent.QueryChanged("")), events)
@@ -65,7 +65,8 @@ class SearchContentTest {
     fun empty_field_shows_the_search_icon_and_no_clear_button() = runComposeUiTest {
         setContent { AppTheme { SearchContent(SearchUiState(""), {}, {}, {}) } }
 
-        onNodeWithTag(CatalogueTestTags.SEARCH_ICON).assertExists()
+        // Decorative, so it's merged into the text field's node: only the unmerged tree has it on its own.
+        onNodeWithTag(CatalogueTestTags.SEARCH_ICON, useUnmergedTree = true).assertExists()
         onNodeWithTag(CatalogueTestTags.SEARCH_CLEAR).assertDoesNotExist()
     }
 }
