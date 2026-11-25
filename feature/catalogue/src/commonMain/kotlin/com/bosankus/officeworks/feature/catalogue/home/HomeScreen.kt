@@ -1,0 +1,227 @@
+package com.bosankus.officeworks.feature.catalogue.home
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.grid.LazyGridScope
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.minimumInteractiveComponentSize
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.font.FontWeight
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.bosankus.officeworks.core.ui.components.EmptyView
+import com.bosankus.officeworks.core.ui.components.ErrorView
+import com.bosankus.officeworks.core.ui.components.LoadingView
+import com.bosankus.officeworks.core.ui.components.message
+import com.bosankus.officeworks.core.ui.theme.Sizes
+import com.bosankus.officeworks.core.ui.theme.Spacing
+import com.bosankus.officeworks.feature.catalogue.CatalogueTestTags
+import com.bosankus.officeworks.feature.catalogue.components.ProductGrid
+import com.bosankus.officeworks.feature.catalogue.components.SearchField
+import com.bosankus.officeworks.feature.catalogue.components.SectionHeader
+import com.bosankus.officeworks.feature.catalogue.components.fullWidthItem
+import com.bosankus.officeworks.feature.catalogue.components.productItems
+import com.bosankus.officeworks.feature.catalogue.model.CategoryUi
+import com.bosankus.officeworks.feature.catalogue.resources.Res
+import com.bosankus.officeworks.feature.catalogue.resources.category_empty
+import com.bosankus.officeworks.feature.catalogue.resources.home_subtitle
+import com.bosankus.officeworks.feature.catalogue.resources.home_title
+import com.bosankus.officeworks.feature.catalogue.resources.more_in_category
+import com.bosankus.officeworks.feature.catalogue.resources.top_rated
+import org.jetbrains.compose.resources.painterResource
+import org.jetbrains.compose.resources.stringResource
+import org.koin.compose.viewmodel.koinViewModel
+
+/**
+ * Displays the main catalogue home screen with category filters and featured products.
+ * Manages search triggers, category selection, pull-to-refresh, and product navigation.
+ */
+@Composable
+fun HomeScreen(onSearch: (query: String) -> Unit, onProductClick: (productId: Int) -> Unit) {
+    val viewModel = koinViewModel<HomeViewModel>()
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+    HomeContent(state, viewModel::onEvent, onSearch, onProductClick)
+}
+
+@Composable
+internal fun HomeContent(state: HomeUiState, onEvent: (HomeEvent) -> Unit, onSearch: (String) -> Unit, onProductClick: (Int) -> Unit) {
+    var query by rememberSaveable { mutableStateOf("") }
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    val refreshError = (state as? HomeUiState.Content)?.refreshError
+    val refreshErrorMessage = refreshError?.message()
+    // The effect restarts only for a new error, so it reads the latest callback rather than the one it started with.
+    val currentOnEvent by rememberUpdatedState(onEvent)
+    LaunchedEffect(refreshError) {
+        if (refreshErrorMessage != null) {
+            snackbarHostState.showSnackbar(refreshErrorMessage)
+            currentOnEvent(HomeEvent.RefreshErrorShown)
+        }
+    }
+
+    Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+        Box(Modifier.fillMaxSize()) {
+            Column(Modifier.fillMaxSize().statusBarsPadding()) {
+                Header()
+                SearchField(
+                    query = query,
+                    onQueryChange = { query = it },
+                    // Cleared on the way out, so coming back to Home starts with an empty field.
+                    onSearch = {
+                        onSearch(query.trim())
+                        query = ""
+                    },
+                    modifier = Modifier.padding(horizontal = Spacing.medium),
+                )
+                when (state) {
+                    HomeUiState.Loading -> LoadingView()
+
+                    is HomeUiState.Error -> ErrorView(state.error, onRetry = { onEvent(HomeEvent.Retry) })
+
+                    is HomeUiState.Content -> {
+                        CategorySection(state.categories, state.selectedCategory, onEvent)
+                        PullToRefreshBox(
+                            isRefreshing = state.isRefreshing,
+                            onRefresh = { onEvent(HomeEvent.Refresh) },
+                            modifier = Modifier.fillMaxSize(),
+                        ) {
+                            ProductGrid(bottomInset = WindowInsets.navigationBars) {
+                                productsSection(state.products, state.selectedCategory, onEvent, onProductClick)
+                            }
+                        }
+                    }
+                }
+            }
+            SnackbarHost(
+                snackbarHostState,
+                Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(Spacing.medium),
+            )
+        }
+    }
+}
+
+@Composable
+private fun Header() {
+    Column(Modifier.padding(horizontal = Spacing.medium, vertical = Spacing.medium)) {
+        Text(
+            stringResource(Res.string.home_title),
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold,
+        )
+        Text(
+            stringResource(Res.string.home_subtitle),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+private fun LazyGridScope.productsSection(
+    section: ProductsSection,
+    selected: CategoryUi?,
+    onEvent: (HomeEvent) -> Unit,
+    onProductClick: (Int) -> Unit,
+) {
+    when (section) {
+        is ProductsSection.Featured -> if (section.products.isNotEmpty()) {
+            fullWidthItem("featured_header") { SectionHeader(stringResource(Res.string.top_rated)) }
+            productItems(section.products, onProductClick)
+        }
+
+        ProductsSection.Loading -> fullWidthItem("section_loading") { LoadingView(Modifier.padding(Spacing.large)) }
+
+        is ProductsSection.Error -> fullWidthItem("section_error") {
+            ErrorView(section.error, onRetry = { onEvent(HomeEvent.Retry) })
+        }
+
+        is ProductsSection.Category -> if (section.topRated.isEmpty()) {
+            fullWidthItem("category_empty") { EmptyView(stringResource(Res.string.category_empty)) }
+        } else {
+            fullWidthItem("category_top_header") { SectionHeader(stringResource(Res.string.top_rated)) }
+            productItems(section.topRated, onProductClick)
+            if (section.others.isNotEmpty() && selected != null) {
+                fullWidthItem("category_others_header") {
+                    SectionHeader(stringResource(Res.string.more_in_category, selected.name))
+                }
+                productItems(section.others, onProductClick)
+            }
+        }
+    }
+}
+
+@Composable
+private fun CategorySection(categories: List<CategoryUi>, selected: CategoryUi?, onEvent: (HomeEvent) -> Unit) {
+    LazyRow(
+        contentPadding = PaddingValues(horizontal = Spacing.medium, vertical = Spacing.small),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.small),
+    ) {
+        items(categories, key = { it.slug }) { category ->
+            CategoryChip(
+                label = category.name,
+                icon = categoryIcon(category.slug),
+                selected = category == selected,
+                onClick = { onEvent(HomeEvent.CategoryTapped(category)) },
+                modifier = Modifier.testTag(CatalogueTestTags.CATEGORY_CHIP),
+            )
+        }
+    }
+}
+
+@Composable
+private fun CategoryChip(label: String, icon: CategoryIcon, selected: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val colors = MaterialTheme.colorScheme
+    val contentColor = if (selected) colors.onPrimary else colors.onSurfaceVariant
+    Row(
+        modifier = modifier
+            .minimumInteractiveComponentSize()
+            .clip(RoundedCornerShape(Sizes.chipCornerRadius))
+            .background(if (selected) colors.primary else colors.surfaceVariant)
+            .selectable(selected = selected, role = Role.Tab, onClick = onClick)
+            .heightIn(min = Sizes.chipHeight)
+            .padding(horizontal = Spacing.small + Spacing.extraSmall),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(Spacing.small),
+    ) {
+        Icon(
+            painter = painterResource(if (selected) icon.filled else icon.outlined),
+            contentDescription = null,
+            tint = contentColor,
+            modifier = Modifier.size(Sizes.iconSmall),
+        )
+        Text(label, style = MaterialTheme.typography.labelLarge, color = contentColor)
+    }
+}

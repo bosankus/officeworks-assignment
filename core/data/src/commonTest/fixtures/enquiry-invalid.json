@@ -1,0 +1,1 @@
+{"code":"VALIDATION_ERROR","message":"Some fields are invalid.","fieldErrors":[{"field":"name","code":"REQUIRED"},{"field":"email","code":"INVALID_FORMAT"}]}
