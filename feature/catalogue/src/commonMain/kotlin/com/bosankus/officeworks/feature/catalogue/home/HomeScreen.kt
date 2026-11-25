@@ -105,7 +105,9 @@ internal fun HomeContent(state: HomeUiState, onEvent: (HomeEvent) -> Unit, onSea
                 )
                 when (state) {
                     HomeUiState.Loading -> LoadingView()
+
                     is HomeUiState.Error -> ErrorView(state.error, onRetry = { onEvent(HomeEvent.Retry) })
+
                     is HomeUiState.Content -> {
                         CategorySection(state.categories, state.selectedCategory, onEvent)
                         PullToRefreshBox(
@@ -155,10 +157,13 @@ private fun LazyGridScope.productsSection(
             fullWidthItem("featured_header") { SectionHeader(stringResource(Res.string.top_rated)) }
             productItems(section.products, onProductClick)
         }
+
         ProductsSection.Loading -> fullWidthItem("section_loading") { LoadingView(Modifier.padding(Spacing.large)) }
+
         is ProductsSection.Error -> fullWidthItem("section_error") {
             ErrorView(section.error, onRetry = { onEvent(HomeEvent.Retry) })
         }
+
         is ProductsSection.Category -> if (section.topRated.isEmpty()) {
             fullWidthItem("category_empty") { EmptyView(stringResource(Res.string.category_empty)) }
         } else {

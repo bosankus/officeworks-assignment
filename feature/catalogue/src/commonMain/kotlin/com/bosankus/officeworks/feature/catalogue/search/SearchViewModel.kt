@@ -69,6 +69,7 @@ internal class SearchViewModel(initialQuery: String, private val searchProducts:
                     } else {
                         SearchResults.Found(result.data.map { it.toUi() })
                     }
+
                 is DataResult.Failure -> SearchResults.Error(result.error.toUiError())
             }
             _uiState.update { it.copy(results = results) }

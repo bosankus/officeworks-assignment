@@ -56,10 +56,14 @@ internal suspend inline fun <reified T> safeApiCall(
 
 internal suspend fun HttpResponse.toDataError(onBadRequest: (ErrorDto?) -> DataError): DataError = when (status) {
     HttpStatusCode.NotFound -> DataError.NotFound
+
     HttpStatusCode.TooManyRequests -> DataError.RateLimited
+
     HttpStatusCode.BadRequest -> onBadRequest(errorBody())
+
     // 409 means the app reused an idempotency key for a different enquiry; nothing the customer can fix.
     HttpStatusCode.Conflict -> DataError.Unknown
+
     // 500 INTERNAL_ERROR and 502 UPSTREAM_ERROR (catalogue or mail server down) are both retryable.
     else -> if (status.value >= 500) DataError.Server else DataError.Unknown
 }

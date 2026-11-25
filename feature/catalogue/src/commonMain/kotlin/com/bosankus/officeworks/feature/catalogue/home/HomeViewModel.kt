@@ -123,8 +123,10 @@ internal class HomeViewModel(
             // No category, or the selected one has gone from the catalogue: show the featured products.
             current == null || categories.none { it.slug == current.slug } ->
                 copy(categories = categories, selectedCategory = null, products = ProductsSection.Featured(featured), isRefreshing = false)
+
             current.slug == refreshed?.slug && page is DataResult.Success ->
                 copy(categories = categories, products = page.data.toSection(), isRefreshing = false)
+
             // The customer picked another category mid-refresh; its own load fills the section.
             else -> copy(categories = categories, isRefreshing = false)
         }
@@ -154,7 +156,9 @@ internal class HomeViewModel(
 
             _uiState.value = when {
                 products is DataResult.Failure -> HomeUiState.Error(products.error.toUiError())
+
                 categories is DataResult.Failure -> HomeUiState.Error(categories.error.toUiError())
+
                 else -> {
                     featured = (products as DataResult.Success).data.map { it.toUi() }
                     HomeUiState.Content(

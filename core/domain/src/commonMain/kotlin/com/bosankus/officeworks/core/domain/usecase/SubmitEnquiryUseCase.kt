@@ -34,6 +34,7 @@ class SubmitEnquiryUseCase(private val repository: EnquiryRepository, private va
 
         return when (val result = repository.submit(enquiry)) {
             is DataResult.Success -> SubmitEnquiryResult.Sent
+
             // Backend-only rules (or rules that changed) show inline, like local ones.
             is DataResult.Failure -> (result.error as? DataError.Validation)
                 ?.let { SubmitEnquiryResult.Invalid(it.fieldErrors) }

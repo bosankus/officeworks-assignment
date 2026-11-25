@@ -16,9 +16,13 @@ enum class UiError { Network, Server, RateLimited, NotFound, Generic }
 /** One mapping for every feature, so the same failure always reads the same way. */
 fun DataError.toUiError(): UiError = when (this) {
     DataError.Network -> UiError.Network
+
     DataError.Server -> UiError.Server
+
     DataError.RateLimited -> UiError.RateLimited
+
     DataError.NotFound -> UiError.NotFound
+
     // Validation is shown inline on the form; reaching a generic message means nothing more specific applies.
     is DataError.Validation, DataError.Unknown -> UiError.Generic
 }

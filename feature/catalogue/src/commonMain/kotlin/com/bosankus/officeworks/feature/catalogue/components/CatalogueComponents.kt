@@ -49,10 +49,7 @@ import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import com.bosankus.officeworks.core.ui.resources.Res as CoreRes
 
-/**
- * Shared UI components for the catalogue feature.
- * Provides adaptive grids, product item lists, headers, and search controls.
- */
+// Shared UI components for the catalogue feature: adaptive grids, product item lists, headers, and search controls.
 
 /**
  * Renders an adaptive vertical grid for catalogue product items.
