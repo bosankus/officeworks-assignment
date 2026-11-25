@@ -100,7 +100,11 @@ internal fun HomeContent(state: HomeUiState, onEvent: (HomeEvent) -> Unit, onSea
                 SearchField(
                     query = query,
                     onQueryChange = { query = it },
-                    onSearch = { onSearch(query.trim()) },
+                    // Cleared on the way out, so coming back to Home starts with an empty field.
+                    onSearch = {
+                        onSearch(query.trim())
+                        query = ""
+                    },
                     modifier = Modifier.padding(horizontal = Spacing.medium),
                 )
                 when (state) {

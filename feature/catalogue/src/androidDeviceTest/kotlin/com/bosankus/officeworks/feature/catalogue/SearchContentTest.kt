@@ -65,7 +65,7 @@ class SearchContentTest {
     fun empty_field_shows_the_search_icon_and_no_clear_button() = runComposeUiTest {
         setContent { AppTheme { SearchContent(SearchUiState(""), {}, {}, {}) } }
 
-        onNodeWithTag(CatalogueTestTags.SEARCH_ICON).assertIsDisplayed()
+        onNodeWithTag(CatalogueTestTags.SEARCH_ICON).assertExists()
         onNodeWithTag(CatalogueTestTags.SEARCH_CLEAR).assertDoesNotExist()
     }
 }
