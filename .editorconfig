@@ -1,39 +1,39 @@
 root = true
 
-# Kotlin only: the backend has its own formatting settings.
-# Enforced by `./gradlew spotlessCheck` (first step of scripts/ci.sh) and read by Android Studio,
-# so an IDE reformat and CI agree. Rules are disabled only where a convention requires it, and each
-# exception says why.
+# App configuration: Enforced by `./gradlew spotlessCheck` and read by Android Studio / IntelliJ IDEA.
 
-[*.{kt,kts}]
+[*]
 charset = utf-8
 end_of_line = lf
 insert_final_newline = true
 trim_trailing_whitespace = true
+
+[*.{kt,kts}]
 indent_style = space
 indent_size = 4
 max_line_length = 140
-
-# intellij_idea, not ktlint_official: it matches Android Studio's default Kotlin formatter, so
-# "Reformat Code" produces what CI expects. ktlint_official would rewrap ~770 lines for layout alone.
 ktlint_code_style = intellij_idea
-
-# Trailing commas on multi-line declarations and calls: one-line diffs when a parameter is added.
 ij_kotlin_allow_trailing_comma = true
 ij_kotlin_allow_trailing_comma_on_call_site = true
-
-# Explicit imports only (ktlint's no-wildcard-imports); stop the IDE from collapsing them to `*`.
 ij_kotlin_name_count_to_use_star_import = 2147483647
 ij_kotlin_name_count_to_use_star_import_for_members = 2147483647
 ij_kotlin_imports_layout = *,java.**,javax.**,kotlin.**,^
-
-# Composables are PascalCase by Compose convention; every other function stays camelCase.
-ktlint_function_naming_ignore_when_annotated_with = Composable
-
-# Compose rules (io.nlopez.compose.rules, wired in build.gradle.kts) run with their defaults:
-# modifier parameters and their defaults, parameter order, state hoisting, effect keys, unstable
-# collections, no ViewModels passed down. See DECISIONS.md.
+ktlint_function_naming_ignore_when_annotated_with = Composable, Test
+ktlint_standard_function-naming_ignore_when_annotated_with = Composable, Test
 
 [**/androidDeviceTest/**.kt]
-# Instrumented test names use underscores: DEX doesn't allow spaces, so backtick names won't build.
 ktlint_standard_function-naming = disabled
+
+[**/*Test.kt]
+ktlint_standard_function-naming = disabled
+
+[*.xml]
+indent_style = space
+indent_size = 4
+
+[*.{json,yml,yaml}]
+indent_style = space
+indent_size = 2
+
+[*.md]
+trim_trailing_whitespace = false
