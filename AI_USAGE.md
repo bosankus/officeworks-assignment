@@ -9,7 +9,7 @@
   my Mac and pasted the output back: the AI's sandbox couldn't reach the Gradle repositories, the emulator
   or the running backend.
 - Claude's browser pane, to read the Fake Store docs and check the live API and the Mailpit inbox.
-- _Other tools, if any (e.g. Android Studio Gemini, Copilot)._
+- No other AI tools.
 
 ## Agent instructions
 
@@ -39,33 +39,30 @@ rule was missing, the rule was added (typographic quotes in strings, the direct 
    client plus one backend, and the client must not call Fake Store directly. So API_CONTRACT.md was written
    first, and the backend and app were each built and tested against it.
 2. **Disagreeing in both directions.** The AI proposed skipping use cases for pass-through reads; I overruled
-   it so every change has an obvious home. I asked for data -> domain -> UI; the AI pushed back that data
-   implements domain's interfaces, so domain comes first. I agreed.
+   it so every change has an obvious home. I asked for data -> domain -> UI; it pushed back that data
+   implements domain's interfaces, so domain comes first, and I agreed. I suggested an interface for every
+   use case; it argued that seven single-implementation interfaces add files without making anything
+   swappable, and I agreed again (DECISIONS.md).
 3. **Dropping the iOS target.** We started with Android and iOS through Compose Multiplatform. Re-reading the
    brief, its iOS option is Swift or Objective-C, so a Kotlin iOS target could be marked down. iOS was
    removed and the KMP layout kept, so it can be added back (DECISIONS.md, "Adding iOS").
 4. **Testing against the real backend.** I had all demo data removed from the app, overriding a task brief
    that kept it as an option, so the app can only run against the backend. The `core:data` tests parse JSON
    captured from the running backend, so a change on either side breaks a test, not the app.
-5. **Using the app changed the design.** On the emulator, opening a category on its own screen lost the chips
-   and search, so categories now filter the home page in place and the category screen was deleted. I then
-   restyled the app from a reference shot. The AI kept only elements with real data behind them and left
-   out the rest (location, notifications, bottom navigation, chat/offer) rather than ship dead buttons.
-6. **Not applying SOLID everywhere.** I suggested an interface and `Impl` for every use case and repository.
-   The AI pointed out the repositories already work that way and argued against it for use cases: each has
-   one implementation, tests run them for real, and seven interfaces would add files without making
-   anything swappable. I agreed; the reasoning is in DECISIONS.md.
-7. **A review pass instead of more features.** I asked for a lead-developer review of the whole app. It found
-   no leaks but five real bugs, the worst an enquiry that can get stuck in a `409` loop after a lost response.
-   They're written up with fixes in DECISIONS.md rather than hidden.
+5. **Using and reviewing the app instead of adding features.** On the emulator, a separate category screen
+   lost the chips and search, so categories now filter Home in place. Then I asked for a lead-developer review
+   of the whole codebase. It found real bugs (the worst, an enquiry that can get stuck in a `409` loop after a
+   lost response), API details leaking into the domain, and duplicated error mapping. The design issues were
+   fixed; the remaining bugs are written up with fixes in DECISIONS.md, "Known limitations". I also had
+   Compose-specific lint rules added to CI, which found a `LaunchedEffect` that could call a stale callback.
 
 ## How the output was checked
 
 - Every build and test run was mine, on my Mac; the AI fixed from the pasted output.
 - Unit tests in every module with logic, including contract tests on captured backend responses
   (`./gradlew testAndroidHostTest`).
-- Compose UI tests for every acceptance criterion, run on an API 31 emulator. _API 36: confirm after the
-  Espresso fix._
+- Compose UI tests for every acceptance criterion, plus navigation tests through the whole app, run on
+  API 31 and API 36 (Android 16) emulators.
 - The acceptance criteria walked by hand on the emulator against the running backend.
 - Backend: `npm run check` (typecheck, type-aware lint, tests, coverage floor) and a CI smoke test that runs
   `docker compose up` and checks exactly one email lands in Mailpit for a retried enquiry.
@@ -120,6 +117,20 @@ rule was missing, the rule was added (typographic quotes in strings, the direct 
   compile errors.
 - The UI tests passed on an API 31 emulator but all failed on API 36: Compose UI test brings in an older
   Espresso that calls a removed Android method. Declaring Espresso 3.7.0 directly fixed it.
+- It added the Compose lint rules without checking which ktlint they're built against. They need ktlint
+  1.8.0, the project pinned 1.7.1, and the mix crashed a rule on every file. It had tested with a standalone
+  ktlint, which hid the clash; the first CI run showed it.
+
+**Process**
+
+- It committed with `git add` on whole files without checking the diff, so edits made to those files
+  between its commits went in under its own commit messages. One of them undid "clear the Home search field
+  after searching". A UI test caught it; the AI restored the behaviour and now checks diffs before committing.
+- A search-field UI test failed twice and it misdiagnosed it both times (first "the icon loads late"). The
+  failure message already said why: the decorative icon is merged into the text field's accessibility
+  node, so it only exists in the unmerged tree.
+- It assumed the JVM's currency formatter sets the right decimals for a currency, as Android's does. The
+  yen test failed (`¥1,200.00`); the decimals are now set explicitly.
 
 **Backend**
 
@@ -144,6 +155,9 @@ rule was missing, the rule was added (typographic quotes in strings, the direct 
 
 ## Things the AI caught
 
+- Turning on the Compose lint rules found a `LaunchedEffect` that read a callback directly, so it could call
+  a stale one. It now reads it through `rememberUpdatedState`.
+
 - The project template pinned Material3 to an alpha; it proposed the stable version.
 - MockK is JVM-only, so mocks in shared tests would break any non-JVM target. Shared tests use hand-written
   fakes; MockK is only used in Android host tests.
@@ -155,10 +169,13 @@ rule was missing, the rule was added (typographic quotes in strings, the direct 
 
 ## Time spent
 
+Over the 2–3 hour time-box. The extra time went on the backend, a design pass after using the app on the
+emulator, and two review passes. Figures are rounded estimates from the session history.
+
 | Phase | Time |
 |---|---|
-| Planning | _x h_ |
-| Building | _x h_ |
-| Testing | _x h_ |
-| Reviewing | _x h_ |
-| **Total** | _x h_ |
+| Planning (brief, architecture, API contract, docs first) | 1.5 h |
+| Building (app ~4.5 h, backend ~1.5 h) | 6 h |
+| Testing (unit and UI tests, emulator runs, fixing failures) | 2.5 h |
+| Reviewing (code review passes, lint rules, docs, PR) | 2 h |
+| **Total** | **12 h** |
