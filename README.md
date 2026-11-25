@@ -8,22 +8,56 @@ backend. Why: [DECISIONS.md](DECISIONS.md).
 
 ## Run it
 
-You need **[Docker Desktop](https://www.docker.com/products/docker-desktop/)** and
-**[Android Studio](https://developer.android.com/studio)**. Works on macOS, Windows and Linux.
+You need **[Android Studio](https://developer.android.com/studio)**, plus either **Docker** or
+**[Node.js](https://nodejs.org) 22.9+** for the backend. Run the commands from the project folder
+unless a step says otherwise.
 
-**1. Start the backend** (from the project folder; leave it running)
+**1. Start the backend** (pick one, and leave it running)
+
+<details open>
+<summary><b>Option A: Docker</b> (one command, any OS)</summary>
 
 ```bash
 docker compose up --build
 ```
 
-Ready when http://localhost:3000/api/v1/products/featured shows 5 products.
+Older Docker versions use `docker-compose up --build` instead.
+
+</details>
+
+<details open>
+<summary><b>Option B: Node.js, no Docker</b> (two terminals)</summary>
+
+Terminal 1, the mail catcher ([Mailpit](https://mailpit.axllent.org)), so enquiry emails have somewhere to go.
+This one can run from any folder, e.g. Downloads:
+
+| OS | Install once | Run |
+|---|---|---|
+| macOS | `brew install mailpit` | `mailpit` |
+| Linux | `sudo sh < <(curl -sL https://raw.githubusercontent.com/axllent/mailpit/develop/install.sh)` | `mailpit` |
+| Windows (PowerShell) | `Invoke-WebRequest https://github.com/axllent/mailpit/releases/latest/download/mailpit-windows-amd64.zip -OutFile mailpit.zip`<br>`Expand-Archive mailpit.zip mailpit` | `.\mailpit\mailpit.exe` |
+
+Terminal 2, the API. Same commands on every OS:
+
+```bash
+cd backend
+npm install
+npm run dev
+```
+
+Every backend setting has a working default, so there's nothing to configure (`backend/.env.example`
+lists them). Without Mailpit the app still browses and searches; only sending an enquiry fails.
+
+</details>
+
+Either way, the backend is ready when http://localhost:3000/api/v1/products/featured shows 5 products,
+and enquiry emails appear at http://localhost:8025.
 
 **2. Open the project in Android Studio and start an emulator**
 
 Opening it once lets Android Studio find your Android SDK. Then **Device Manager** → ▶ on any phone.
 
-**3. Install the app**
+**3. Install the app** (in a new terminal)
 
 | macOS / Linux | Windows |
 |---|---|
@@ -41,27 +75,6 @@ use the Run button, or point `JAVA_HOME` at the JDK bundled with Android Studio.
 | Search | Type "jacket" and press search; "zzzz" shows the empty state |
 | Product page | Tap any product |
 | Enquiry | Product → **Enquire** → fill in name and email → **Send** → "Thank you". The email arrives at http://localhost:8025 |
-
-<details>
-<summary>No Docker? Run the backend with Node 22+ and Mailpit instead</summary>
-
-Install [Mailpit](https://mailpit.axllent.org/docs/install/) (catches the enquiry emails):
-
-| macOS | Linux | Windows |
-|---|---|---|
-| `brew install mailpit` | `sudo sh < <(curl -sL https://raw.githubusercontent.com/axllent/mailpit/develop/install.sh)` | Download from [Mailpit releases](https://github.com/axllent/mailpit/releases) |
-
-Then, in two terminals:
-
-```bash
-mailpit                                 # terminal 1
-cd backend && npm install && npm run dev  # terminal 2
-```
-
-On Windows PowerShell 5, run the second line as `cd backend`, `npm install`, `npm run dev`.
-Every backend setting has a working default; `backend/.env.example` lists them.
-
-</details>
 
 <details>
 <summary>Real phone or another machine?</summary>
