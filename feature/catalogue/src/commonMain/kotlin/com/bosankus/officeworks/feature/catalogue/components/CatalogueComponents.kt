@@ -3,6 +3,8 @@ package com.bosankus.officeworks.feature.catalogue.components
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -48,12 +50,20 @@ import com.bosankus.officeworks.core.ui.resources.Res as CoreRes
 private const val TYPE_PRODUCT = "product"
 private const val TYPE_STATUS = "status"
 
-/** Adaptive columns: two on a phone, more on wider screens. */
+/**
+ * Adaptive columns: two on a phone, more on wider screens.
+ * Pass [bottomInset] when no Scaffold already pads for the navigation bar, so the last row can scroll clear of it.
+ */
 @Composable
-internal fun ProductGrid(modifier: Modifier = Modifier, content: LazyGridScope.() -> Unit) {
+internal fun ProductGrid(
+    modifier: Modifier = Modifier,
+    bottomInset: WindowInsets = WindowInsets(0),
+    content: LazyGridScope.() -> Unit,
+) {
+    val bottom = Spacing.large + bottomInset.asPaddingValues().calculateBottomPadding()
     LazyVerticalGrid(
         columns = GridCells.Adaptive(minSize = Sizes.productTileMinWidth),
-        contentPadding = PaddingValues(start = Spacing.medium, end = Spacing.medium, bottom = Spacing.large),
+        contentPadding = PaddingValues(start = Spacing.medium, end = Spacing.medium, bottom = bottom),
         horizontalArrangement = Arrangement.spacedBy(Spacing.medium),
         verticalArrangement = Arrangement.spacedBy(Spacing.medium),
         modifier = modifier.fillMaxSize().testTag(CatalogueTestTags.PRODUCT_GRID),

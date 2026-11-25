@@ -204,8 +204,6 @@ Not fixed yet. Most were found in a review pass across the app; each has its fix
   customer doesn't learn whether it went. Fix: block leaving for the short sending window.
 - Pull-to-refresh while a category is still loading cancels that load; if the refresh then fails, the
   category shows a spinner that never ends. Fix: show the category error instead.
-- On Home the grid's last row sits partly under a 3-button navigation bar (edge-to-edge, no `Scaffold`).
-  Fix: add the navigation bar inset to the grid's bottom padding.
 - A product that doesn't exist (`404`) still offers Retry, which can't help.
 - The enquiry form isn't saved if Android kills the app in the background, so the customer retypes it.
   Fix: keep the form and its idempotency key in `SavedStateHandle`.

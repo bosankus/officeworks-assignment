@@ -6,8 +6,10 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -109,7 +111,10 @@ internal fun HomeContent(state: HomeUiState, onEvent: (HomeEvent) -> Unit, onSea
                             onRefresh = { onEvent(HomeEvent.Refresh) },
                             modifier = Modifier.fillMaxSize(),
                         ) {
-                            ProductGrid { productsSection(state.products, state.selectedCategory, onEvent, onProductClick) }
+                            // Home has no Scaffold, and the app draws edge-to-edge: keep the last row above the nav bar.
+                            ProductGrid(bottomInset = WindowInsets.navigationBars) {
+                                productsSection(state.products, state.selectedCategory, onEvent, onProductClick)
+                            }
                         }
                     }
                 }
