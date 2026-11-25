@@ -12,11 +12,13 @@ plugins {
 
 // Formatting and lint for every module: ./gradlew spotlessCheck (CI) or spotlessApply (fix).
 // ktlint rules live in .editorconfig so Android Studio and the command line agree.
+// Compose rules add Compose-specific checks (modifiers, state hoisting, effects, stability) to ktlint.
 spotless {
     kotlin {
         target("**/src/**/*.kt")
         targetExclude("**/build/**")
         ktlint(libs.versions.ktlint.get())
+            .customRuleSets(listOf("io.nlopez.compose.rules:ktlint:${libs.versions.composeRules.get()}"))
     }
     kotlinGradle {
         target("**/*.gradle.kts")

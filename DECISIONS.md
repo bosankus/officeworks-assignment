@@ -71,7 +71,8 @@ All stable versions, pinned in `gradle/libs.versions.toml`.
 | Ktor client mock | HTTP tests without a server. |
 | Compose UI test, AndroidX test runner | UI tests on an emulator. The AndroidX `ui-test` libraries are pinned to the Compose UI version Compose Multiplatform ships (1.12.1), so tests run on the same Compose as the app. Bump them together. |
 | Espresso core 3.7.0 | Declared directly because Compose UI test brings in an older Espresso that crashes on API 34+. |
-| Spotless + ktlint (build only) | One formatting and lint check for every module, run first in `scripts/ci.sh`. ktlint rules sit in `.editorconfig` so the IDE agrees. Composables keep PascalCase names, and device tests use underscores (DEX doesn't allow spaces). |
+| Spotless + ktlint (build only) | One formatting and lint check for every module, run first in `scripts/ci.sh`. Rules live in `.editorconfig`, so Android Studio and CI agree. `intellij_idea` style because it matches Android Studio's formatter (`ktlint_official` would rewrap ~770 lines for layout alone). Trailing commas and explicit imports are enforced. Only two exceptions, each commented: PascalCase for composables, and underscores in device test names (DEX doesn't allow spaces). |
+| Compose rules 0.6.8 (ktlint ruleset, build only) | Compose-specific checks in the same `spotlessCheck`: modifier parameters with defaults, parameter order, effect keys and `rememberUpdatedState`, unstable collections, no ViewModels passed down. Turning it on found 7 issues, all fixed, including a `LaunchedEffect` that could call a stale callback. |
 
 ## Backend
 

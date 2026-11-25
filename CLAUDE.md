@@ -116,6 +116,9 @@ name isn't obvious. Don't comment self-explanatory code.
 
 Run `./scripts/ci.sh` (format check, unit tests, UI tests, release build, install). Fix style with
 `./gradlew spotlessApply`; don't hand-format or disable ktlint rules inline.
+Compose rules run in the same check: give every public composable that emits UI a `modifier: Modifier = Modifier`
+parameter, and read callbacks inside effects through `rememberUpdatedState`. A rule is suppressed only with a
+comment saying why.
 
 ## Build order
 
