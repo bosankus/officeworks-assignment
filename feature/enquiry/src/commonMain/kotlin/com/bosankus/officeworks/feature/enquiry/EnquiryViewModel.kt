@@ -1,5 +1,6 @@
 package com.bosankus.officeworks.feature.enquiry
 
+import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bosankus.officeworks.core.domain.enquiry.EnquiryField
@@ -20,6 +21,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+// The fieldErrors Map is never mutated: each change makes a new state.
+@Immutable
 internal data class EnquiryUiState(
     val form: EnquiryForm = EnquiryForm(),
     val fieldErrors: Map<EnquiryField, FieldError> = emptyMap(),

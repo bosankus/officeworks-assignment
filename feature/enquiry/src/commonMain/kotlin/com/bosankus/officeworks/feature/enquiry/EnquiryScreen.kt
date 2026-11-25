@@ -127,6 +127,7 @@ private fun EnquiryForm(
     onViewProduct: () -> Unit,
     modifier: Modifier,
 ) {
+    val submitting = state.status == EnquiryStatus.Submitting
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -147,7 +148,8 @@ private fun EnquiryForm(
                 label = Res.string.field_name,
                 icon = Res.drawable.ic_person,
                 value = state.form.name,
-                state = state,
+                error = state.fieldErrors[EnquiryField.NAME],
+                enabled = !submitting,
                 onEvent = onEvent,
                 tag = EnquiryTestTags.NAME_FIELD,
                 keyboard = KeyboardOptions(capitalization = KeyboardCapitalization.Words, imeAction = ImeAction.Next),
@@ -157,7 +159,8 @@ private fun EnquiryForm(
                 label = Res.string.field_email,
                 icon = Res.drawable.ic_email,
                 value = state.form.email,
-                state = state,
+                error = state.fieldErrors[EnquiryField.EMAIL],
+                enabled = !submitting,
                 onEvent = onEvent,
                 tag = EnquiryTestTags.EMAIL_FIELD,
                 keyboard = KeyboardOptions(keyboardType = KeyboardType.Email, autoCorrectEnabled = false, imeAction = ImeAction.Next),
@@ -167,7 +170,8 @@ private fun EnquiryForm(
                 label = Res.string.field_phone,
                 icon = Res.drawable.ic_phone,
                 value = state.form.phone,
-                state = state,
+                error = state.fieldErrors[EnquiryField.PHONE],
+                enabled = !submitting,
                 onEvent = onEvent,
                 tag = EnquiryTestTags.PHONE_FIELD,
                 keyboard = KeyboardOptions(keyboardType = KeyboardType.Phone, imeAction = ImeAction.Next),
@@ -179,7 +183,8 @@ private fun EnquiryForm(
                 field = EnquiryField.MESSAGE,
                 label = Res.string.field_message,
                 value = state.form.message,
-                state = state,
+                error = state.fieldErrors[EnquiryField.MESSAGE],
+                enabled = !submitting,
                 onEvent = onEvent,
                 tag = EnquiryTestTags.MESSAGE_FIELD,
                 keyboard = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
@@ -247,12 +252,14 @@ private fun FormSection(title: StringResource, content: @Composable ColumnScope.
     }
 }
 
+/** Takes only its own value and error, so typing in one field doesn't redraw the others. */
 @Composable
 private fun FormField(
     field: EnquiryField,
     label: StringResource,
     value: String,
-    state: EnquiryUiState,
+    error: FieldError?,
+    enabled: Boolean,
     onEvent: (EnquiryEvent) -> Unit,
     tag: String,
     keyboard: KeyboardOptions,
@@ -260,7 +267,6 @@ private fun FormField(
     singleLine: Boolean = true,
     counter: String? = null,
 ) {
-    val error = state.fieldErrors[field]
     val supporting = error?.label() ?: counter
     OutlinedTextField(
         value = value,
@@ -280,7 +286,7 @@ private fun FormField(
         singleLine = singleLine,
         minLines = if (singleLine) 1 else 4,
         keyboardOptions = keyboard,
-        enabled = state.status != EnquiryStatus.Submitting,
+        enabled = enabled,
         shape = MaterialTheme.shapes.small,
         modifier = Modifier.fillMaxWidth().testTag(tag),
     )
