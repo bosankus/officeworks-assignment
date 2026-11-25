@@ -35,7 +35,7 @@ Clean Architecture + MVVM with unidirectional data flow.
 - **Domain**: models, repository interfaces, use cases. Pure Kotlin.
 - **Data**: DTOs, mappers, data sources, repository implementations.
 - **Presentation**: one ViewModel per screen, one immutable `UiState`, sealed `Event`s via `onEvent()`.
-  ViewModels expose `StateFlow<UiState>` and depend **only on use cases**.
+  ViewModels expose `val uiState: StateFlow<UiState>` (backed by `_uiState`) and depend **only on use cases**.
 
 ## Conventions
 

@@ -36,8 +36,8 @@ internal sealed interface SearchEvent {
 
 internal class SearchViewModel(initialQuery: String, private val searchProducts: SearchProductsUseCase) : ViewModel() {
 
-    private val _state = MutableStateFlow(SearchUiState(query = initialQuery))
-    val state: StateFlow<SearchUiState> = _state.asStateFlow()
+    private val _uiState = MutableStateFlow(SearchUiState(query = initialQuery))
+    val uiState: StateFlow<SearchUiState> = _uiState.asStateFlow()
 
     private var searchJob: Job? = null
     private var lastSubmitted = ""
@@ -48,8 +48,8 @@ internal class SearchViewModel(initialQuery: String, private val searchProducts:
 
     fun onEvent(event: SearchEvent) {
         when (event) {
-            is SearchEvent.QueryChanged -> _state.update { it.copy(query = event.query) }
-            SearchEvent.Submit -> search(_state.value.query)
+            is SearchEvent.QueryChanged -> _uiState.update { it.copy(query = event.query) }
+            SearchEvent.Submit -> search(_uiState.value.query)
             SearchEvent.Retry -> search(lastSubmitted)
         }
     }
@@ -60,7 +60,7 @@ internal class SearchViewModel(initialQuery: String, private val searchProducts:
         lastSubmitted = query
         // A newer search wins; don't let a slow older response overwrite it.
         searchJob?.cancel()
-        _state.update { it.copy(results = SearchResults.Loading) }
+        _uiState.update { it.copy(results = SearchResults.Loading) }
         searchJob = viewModelScope.launch {
             val results = when (val result = searchProducts(query)) {
                 is DataResult.Success ->
@@ -71,7 +71,7 @@ internal class SearchViewModel(initialQuery: String, private val searchProducts:
                     }
                 is DataResult.Failure -> SearchResults.Error(result.error.toUiError())
             }
-            _state.update { it.copy(results = results) }
+            _uiState.update { it.copy(results = results) }
         }
     }
 }

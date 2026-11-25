@@ -30,9 +30,7 @@ internal sealed interface HomeUiState {
         val categories: List<CategoryUi>,
         val selectedCategory: CategoryUi? = null,
         val products: ProductsSection,
-        /** Pull-to-refresh in progress; the current products stay on screen meanwhile. */
         val isRefreshing: Boolean = false,
-        /** A refresh failed. Shown once as a message, then cleared with [HomeEvent.RefreshErrorShown]. */
         val refreshError: UiError? = null,
     ) : HomeUiState
 }
@@ -58,8 +56,8 @@ internal class HomeViewModel(
     private val getCategoryPage: GetCategoryPageUseCase,
 ) : ViewModel() {
 
-    private val _state = MutableStateFlow<HomeUiState>(HomeUiState.Loading)
-    val state: StateFlow<HomeUiState> = _state.asStateFlow()
+    private val _uiState = MutableStateFlow<HomeUiState>(HomeUiState.Loading)
+    val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
 
     private var featured: List<ProductUi> = emptyList()
     private var categoryJob: Job? = null
@@ -73,12 +71,12 @@ internal class HomeViewModel(
             is HomeEvent.CategoryTapped -> onCategoryTapped(event.category)
             HomeEvent.Retry -> retry()
             HomeEvent.Refresh -> refresh()
-            HomeEvent.RefreshErrorShown -> _state.update { (it as? HomeUiState.Content)?.copy(refreshError = null) ?: it }
+            HomeEvent.RefreshErrorShown -> _uiState.update { (it as? HomeUiState.Content)?.copy(refreshError = null) ?: it }
         }
     }
 
     private fun retry() {
-        val content = _state.value as? HomeUiState.Content
+        val content = _uiState.value as? HomeUiState.Content
         val selected = content?.selectedCategory
         // Only the category failed: reload just that, keeping the chips on screen.
         if (selected != null && content.products is ProductsSection.Error) loadCategory(selected) else loadHome()
@@ -87,12 +85,12 @@ internal class HomeViewModel(
     /** Reloads what's on screen (featured, categories, and the selected category) without blanking it. */
     private fun refresh() {
         // Nothing loaded yet: a pull is just a full load.
-        val content = _state.value as? HomeUiState.Content ?: return loadHome()
+        val content = _uiState.value as? HomeUiState.Content ?: return loadHome()
         if (content.isRefreshing) return
         // The refresh reloads the selected category too, so an in-flight load of it is redundant.
         categoryJob?.cancel()
         val selected = content.selectedCategory
-        _state.value = content.copy(isRefreshing = true, refreshError = null)
+        _uiState.value = content.copy(isRefreshing = true, refreshError = null)
 
         viewModelScope.launch {
             val featuredResult = async { getFeaturedProducts() }
@@ -102,7 +100,7 @@ internal class HomeViewModel(
             val categories = categoriesResult.await()
             val page = pageResult?.await()
 
-            _state.update { current ->
+            _uiState.update { current ->
                 val latest = current as? HomeUiState.Content ?: return@update current
                 val failure = listOfNotNull(products, categories, page).filterIsInstance<DataResult.Failure>().firstOrNull()
                 if (failure != null) {
@@ -133,13 +131,13 @@ internal class HomeViewModel(
     }
 
     private fun onCategoryTapped(category: CategoryUi) {
-        val content = _state.value as? HomeUiState.Content ?: return
+        val content = _uiState.value as? HomeUiState.Content ?: return
         if (content.selectedCategory == category) showFeatured() else loadCategory(category)
     }
 
     private fun showFeatured() {
         categoryJob?.cancel()
-        _state.update { current ->
+        _uiState.update { current ->
             (current as? HomeUiState.Content)
                 ?.copy(selectedCategory = null, products = ProductsSection.Featured(featured))
                 ?: current
@@ -147,14 +145,14 @@ internal class HomeViewModel(
     }
 
     private fun loadHome() {
-        _state.value = HomeUiState.Loading
+        _uiState.value = HomeUiState.Loading
         viewModelScope.launch {
             val featuredResult = async { getFeaturedProducts() }
             val categoriesResult = async { getCategories() }
             val products = featuredResult.await()
             val categories = categoriesResult.await()
 
-            _state.value = when {
+            _uiState.value = when {
                 products is DataResult.Failure -> HomeUiState.Error(products.error.toUiError())
                 categories is DataResult.Failure -> HomeUiState.Error(categories.error.toUiError())
                 else -> {
@@ -170,7 +168,7 @@ internal class HomeViewModel(
 
     private fun loadCategory(category: CategoryUi) {
         categoryJob?.cancel()
-        _state.update { current ->
+        _uiState.update { current ->
             (current as? HomeUiState.Content)?.copy(selectedCategory = category, products = ProductsSection.Loading) ?: current
         }
         categoryJob = viewModelScope.launch {
@@ -178,7 +176,7 @@ internal class HomeViewModel(
                 is DataResult.Success -> result.data.toSection()
                 is DataResult.Failure -> ProductsSection.Error(result.error.toUiError())
             }
-            _state.update { current -> (current as? HomeUiState.Content)?.copy(products = section) ?: current }
+            _uiState.update { current -> (current as? HomeUiState.Content)?.copy(products = section) ?: current }
         }
     }
 }

@@ -28,8 +28,8 @@ internal sealed interface ProductDetailEvent {
 
 internal class ProductDetailViewModel(private val productId: ProductId, private val getProduct: GetProductUseCase) : ViewModel() {
 
-    private val _state = MutableStateFlow<ProductDetailUiState>(ProductDetailUiState.Loading)
-    val state: StateFlow<ProductDetailUiState> = _state.asStateFlow()
+    private val _uiState = MutableStateFlow<ProductDetailUiState>(ProductDetailUiState.Loading)
+    val uiState: StateFlow<ProductDetailUiState> = _uiState.asStateFlow()
 
     init {
         load()
@@ -42,9 +42,9 @@ internal class ProductDetailViewModel(private val productId: ProductId, private 
     }
 
     private fun load() {
-        _state.value = ProductDetailUiState.Loading
+        _uiState.value = ProductDetailUiState.Loading
         viewModelScope.launch {
-            _state.value = when (val result = getProduct(productId)) {
+            _uiState.value = when (val result = getProduct(productId)) {
                 is DataResult.Success -> ProductDetailUiState.Content(result.data.toUi())
                 is DataResult.Failure -> ProductDetailUiState.Error(result.error.toUiError())
             }

@@ -65,20 +65,22 @@ import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
+/**
+ * Displays the main catalogue home screen with category filters and featured products.
+ * Manages search triggers, category selection, pull-to-refresh, and product navigation.
+ */
 @Composable
 fun HomeScreen(onSearch: (query: String) -> Unit, onProductClick: (productId: Int) -> Unit) {
     val viewModel = koinViewModel<HomeViewModel>()
-    val state by viewModel.state.collectAsStateWithLifecycle()
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
     HomeContent(state, viewModel::onEvent, onSearch, onProductClick)
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun HomeContent(state: HomeUiState, onEvent: (HomeEvent) -> Unit, onSearch: (String) -> Unit, onProductClick: (Int) -> Unit) {
     var query by rememberSaveable { mutableStateOf("") }
     val snackbarHostState = remember { SnackbarHostState() }
 
-    // A failed refresh keeps the products on screen, so it's reported in a snackbar rather than an error view.
     val refreshError = (state as? HomeUiState.Content)?.refreshError
     val refreshErrorMessage = refreshError?.message()
     LaunchedEffect(refreshError) {
@@ -88,8 +90,6 @@ internal fun HomeContent(state: HomeUiState, onEvent: (HomeEvent) -> Unit, onSea
         }
     }
 
-    // Surface, not Modifier.background: it also sets the content colour, so text without an explicit
-    // colour is light in dark theme instead of falling back to black.
     Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Box(Modifier.fillMaxSize()) {
             Column(Modifier.fillMaxSize().statusBarsPadding()) {
@@ -97,25 +97,19 @@ internal fun HomeContent(state: HomeUiState, onEvent: (HomeEvent) -> Unit, onSea
                 SearchField(
                     query = query,
                     onQueryChange = { query = it },
-                    // Cleared on the way out, so coming back to Home starts with an empty field.
-                    onSearch = {
-                        onSearch(query.trim())
-                        query = ""
-                    },
+                    onSearch = { onSearch(query.trim()) },
                     modifier = Modifier.padding(horizontal = Spacing.medium),
                 )
                 when (state) {
                     HomeUiState.Loading -> LoadingView()
                     is HomeUiState.Error -> ErrorView(state.error, onRetry = { onEvent(HomeEvent.Retry) })
                     is HomeUiState.Content -> {
-                        CategoryChips(state.categories, state.selectedCategory, onEvent)
-                        // Pull on the grid only: the chips above scroll sideways.
+                        CategorySection(state.categories, state.selectedCategory, onEvent)
                         PullToRefreshBox(
                             isRefreshing = state.isRefreshing,
                             onRefresh = { onEvent(HomeEvent.Refresh) },
                             modifier = Modifier.fillMaxSize(),
                         ) {
-                            // Home has no Scaffold, and the app draws edge-to-edge: keep the last row above the nav bar.
                             ProductGrid(bottomInset = WindowInsets.navigationBars) {
                                 productsSection(state.products, state.selectedCategory, onEvent, onProductClick)
                             }
@@ -154,7 +148,6 @@ private fun LazyGridScope.productsSection(
     onProductClick: (Int) -> Unit,
 ) {
     when (section) {
-        // The backend returns up to 5; with none, skip the section rather than show an empty header.
         is ProductsSection.Featured -> if (section.products.isNotEmpty()) {
             fullWidthItem("featured_header") { SectionHeader(stringResource(Res.string.top_rated)) }
             productItems(section.products, onProductClick)
@@ -179,14 +172,13 @@ private fun LazyGridScope.productsSection(
 }
 
 @Composable
-private fun CategoryChips(categories: List<CategoryUi>, selected: CategoryUi?, onEvent: (HomeEvent) -> Unit) {
+private fun CategorySection(categories: List<CategoryUi>, selected: CategoryUi?, onEvent: (HomeEvent) -> Unit) {
     LazyRow(
-        // Each chip already reserves a 48dp tap area, so the row needs less vertical padding of its own.
         contentPadding = PaddingValues(horizontal = Spacing.medium, vertical = Spacing.small),
         horizontalArrangement = Arrangement.spacedBy(Spacing.small),
     ) {
         items(categories, key = { it.slug }) { category ->
-            CategoryPill(
+            CategoryChip(
                 label = category.name,
                 icon = categoryIcon(category.slug),
                 selected = category == selected,
@@ -197,12 +189,8 @@ private fun CategoryChips(categories: List<CategoryUi>, selected: CategoryUi?, o
     }
 }
 
-/**
- * Rounded-rectangle chip with the category icon: outlined by default, filled when selected. Icon and label share a
- * colour in both themes. Drawn at [Sizes.chipHeight], but the tap area stays 48dp, as with Material chips.
- */
 @Composable
-private fun CategoryPill(label: String, icon: CategoryIcon, selected: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
+private fun CategoryChip(label: String, icon: CategoryIcon, selected: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
     val colors = MaterialTheme.colorScheme
     val contentColor = if (selected) colors.onPrimary else colors.onSurfaceVariant
     Row(

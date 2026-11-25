@@ -51,7 +51,7 @@ import org.koin.core.parameter.parametersOf
 @Composable
 fun ProductDetailScreen(productId: Int, onBack: () -> Unit, onEnquire: (productId: Int, productTitle: String) -> Unit) {
     val viewModel = koinViewModel<ProductDetailViewModel> { parametersOf(ProductId(productId)) }
-    val state by viewModel.state.collectAsStateWithLifecycle()
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
     ProductDetailContent(state, viewModel::onEvent, onBack, onEnquire)
 }
 

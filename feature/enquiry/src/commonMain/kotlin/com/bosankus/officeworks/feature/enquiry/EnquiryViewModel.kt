@@ -55,8 +55,8 @@ internal class EnquiryViewModel(
     // One key per form, reused on every retry, so the backend never emails sales twice.
     private val idempotencyKey = newIdempotencyKey()
 
-    private val _state = MutableStateFlow(EnquiryUiState())
-    val state: StateFlow<EnquiryUiState> = _state.asStateFlow()
+    private val _uiState = MutableStateFlow(EnquiryUiState())
+    val uiState: StateFlow<EnquiryUiState> = _uiState.asStateFlow()
 
     init {
         // Decoration only: the title arrives with navigation and the form works without this, so a failure is ignored.
@@ -64,7 +64,7 @@ internal class EnquiryViewModel(
             val result = getProduct(productId)
             if (result is DataResult.Success) {
                 val product = result.data
-                _state.update {
+                _uiState.update {
                     it.copy(product = EnquiryProductUi(product.imageUrl, formatPrice(product.price.cents, product.price.currencyCode)))
                 }
             }
@@ -79,8 +79,8 @@ internal class EnquiryViewModel(
     }
 
     private fun onFieldChanged(field: EnquiryField, value: String) {
-        if (_state.value.status != EnquiryStatus.Editing && _state.value.status !is EnquiryStatus.Failed) return
-        _state.update {
+        if (_uiState.value.status != EnquiryStatus.Editing && _uiState.value.status !is EnquiryStatus.Failed) return
+        _uiState.update {
             it.copy(
                 form = it.form.with(field, value),
                 // Editing a field clears its error; the rest stay until the next submit.
@@ -91,13 +91,13 @@ internal class EnquiryViewModel(
     }
 
     private fun submit() {
-        val current = _state.value
+        val current = _uiState.value
         if (current.status == EnquiryStatus.Submitting || current.status == EnquiryStatus.Submitted) return
 
-        _state.update { it.copy(status = EnquiryStatus.Submitting) }
+        _uiState.update { it.copy(status = EnquiryStatus.Submitting) }
         viewModelScope.launch {
             val result = submitEnquiry(productId, current.form, idempotencyKey)
-            _state.update {
+            _uiState.update {
                 when (result) {
                     SubmitEnquiryResult.Sent -> it.copy(status = EnquiryStatus.Submitted)
                     is SubmitEnquiryResult.Invalid -> it.copy(fieldErrors = result.errors, status = EnquiryStatus.Editing)

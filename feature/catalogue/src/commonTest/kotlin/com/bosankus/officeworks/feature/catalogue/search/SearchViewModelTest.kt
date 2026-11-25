@@ -30,7 +30,7 @@ class SearchViewModelTest : MainDispatcherTest() {
         val viewModel = viewModel("bag")
         advanceUntilIdle()
 
-        assertEquals(SearchUiState("bag", SearchResults.Found(listOf(product(1).toUi()))), viewModel.state.value)
+        assertEquals(SearchUiState("bag", SearchResults.Found(listOf(product(1).toUi()))), viewModel.uiState.value)
         assertEquals(listOf("bag"), repository.searches)
     }
 
@@ -40,7 +40,7 @@ class SearchViewModelTest : MainDispatcherTest() {
         viewModel.onEvent(SearchEvent.Submit)
         advanceUntilIdle()
 
-        assertEquals(SearchResults.Idle, viewModel.state.value.results)
+        assertEquals(SearchResults.Idle, viewModel.uiState.value.results)
         assertTrue(repository.searches.isEmpty())
     }
 
@@ -50,7 +50,7 @@ class SearchViewModelTest : MainDispatcherTest() {
         viewModel.onEvent(SearchEvent.QueryChanged("jack"))
         advanceUntilIdle()
 
-        assertEquals(SearchUiState("jack", SearchResults.Idle), viewModel.state.value)
+        assertEquals(SearchUiState("jack", SearchResults.Idle), viewModel.uiState.value)
         assertTrue(repository.searches.isEmpty())
     }
 
@@ -59,7 +59,7 @@ class SearchViewModelTest : MainDispatcherTest() {
         val viewModel = viewModel()
         viewModel.onEvent(SearchEvent.QueryChanged(" zzz "))
 
-        viewModel.state.test {
+        viewModel.uiState.test {
             skipItems(1)
             viewModel.onEvent(SearchEvent.Submit)
             assertEquals(SearchResults.Loading, awaitItem().results)
@@ -72,7 +72,7 @@ class SearchViewModelTest : MainDispatcherTest() {
         repository.onSearch = { DataResult.Failure(DataError.Network) }
         val viewModel = viewModel("bag")
         advanceUntilIdle()
-        assertEquals(SearchResults.Error(UiError.Network), viewModel.state.value.results)
+        assertEquals(SearchResults.Error(UiError.Network), viewModel.uiState.value.results)
 
         viewModel.onEvent(SearchEvent.QueryChanged("something else"))
         viewModel.onEvent(SearchEvent.Retry)
@@ -97,6 +97,6 @@ class SearchViewModelTest : MainDispatcherTest() {
         slow.complete(Unit)
         advanceUntilIdle()
 
-        assertEquals(SearchResults.Found(listOf(product(2).toUi())), viewModel.state.value.results)
+        assertEquals(SearchResults.Found(listOf(product(2).toUi())), viewModel.uiState.value.results)
     }
 }

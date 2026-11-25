@@ -33,13 +33,13 @@ class HomeViewModelTest : MainDispatcherTest() {
         GetCategoryPageUseCase(repository),
     )
 
-    private fun HomeViewModel.content() = state.value as HomeUiState.Content
+    private fun HomeViewModel.content() = uiState.value as HomeUiState.Content
 
     @Test
     fun `loads featured products and categories`() = runTest {
         repository.featured = DataResult.Success(featured)
 
-        viewModel().state.test {
+        viewModel().uiState.test {
             assertEquals(HomeUiState.Loading, awaitItem())
             assertEquals(
                 HomeUiState.Content(
@@ -55,7 +55,7 @@ class HomeViewModelTest : MainDispatcherTest() {
     fun `featured failure shows an error`() = runTest {
         repository.featured = DataResult.Failure(DataError.Network)
 
-        viewModel().state.test {
+        viewModel().uiState.test {
             skipItems(1)
             assertEquals(HomeUiState.Error(UiError.Network), awaitItem())
         }
@@ -65,7 +65,7 @@ class HomeViewModelTest : MainDispatcherTest() {
     fun `categories failure shows an error`() = runTest {
         repository.categories = DataResult.Failure(DataError.Server)
 
-        viewModel().state.test {
+        viewModel().uiState.test {
             skipItems(1)
             assertEquals(HomeUiState.Error(UiError.Server), awaitItem())
         }
@@ -91,7 +91,7 @@ class HomeViewModelTest : MainDispatcherTest() {
         val viewModel = viewModel()
         advanceUntilIdle()
 
-        viewModel.state.test {
+        viewModel.uiState.test {
             skipItems(1)
             viewModel.onEvent(HomeEvent.CategoryTapped(electronicsUi))
 

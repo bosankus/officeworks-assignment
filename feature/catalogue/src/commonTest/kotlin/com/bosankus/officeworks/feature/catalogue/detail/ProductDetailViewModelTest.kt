@@ -23,7 +23,7 @@ class ProductDetailViewModelTest : MainDispatcherTest() {
     fun `shows the product`() = runTest {
         repository.product = DataResult.Success(product(7))
 
-        viewModel().state.test {
+        viewModel().uiState.test {
             assertEquals(ProductDetailUiState.Loading, awaitItem())
             assertEquals(ProductDetailUiState.Content(product(7).toUi()), awaitItem())
         }
@@ -34,7 +34,7 @@ class ProductDetailViewModelTest : MainDispatcherTest() {
         repository.product = DataResult.Failure(DataError.Network)
         val viewModel = viewModel()
 
-        viewModel.state.test {
+        viewModel.uiState.test {
             skipItems(1)
             assertEquals(ProductDetailUiState.Error(UiError.Network), awaitItem())
 
@@ -50,7 +50,7 @@ class ProductDetailViewModelTest : MainDispatcherTest() {
     fun `loads the product it was opened for, once`() = runTest {
         val viewModel = viewModel()
 
-        viewModel.state.test {
+        viewModel.uiState.test {
             skipItems(2)
             assertEquals(listOf(ProductId(7)), repository.productRequests)
         }
@@ -60,7 +60,7 @@ class ProductDetailViewModelTest : MainDispatcherTest() {
     fun `missing product shows the not-found message`() = runTest {
         repository.product = DataResult.Failure(DataError.NotFound)
 
-        viewModel().state.test {
+        viewModel().uiState.test {
             skipItems(1)
             assertEquals(ProductDetailUiState.Error(UiError.NotFound), awaitItem())
         }
@@ -71,7 +71,7 @@ class ProductDetailViewModelTest : MainDispatcherTest() {
         repository.product = DataResult.Failure(DataError.Server)
         val viewModel = viewModel()
 
-        viewModel.state.test {
+        viewModel.uiState.test {
             skipItems(2)
             viewModel.onEvent(ProductDetailEvent.Retry)
             skipItems(2)

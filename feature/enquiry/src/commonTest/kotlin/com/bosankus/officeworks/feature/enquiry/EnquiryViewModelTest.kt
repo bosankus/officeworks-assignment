@@ -72,8 +72,8 @@ class EnquiryViewModelTest {
         viewModel.onEvent(EnquiryEvent.FieldChanged(EnquiryField.PHONE, "0400"))
         viewModel.onEvent(EnquiryEvent.FieldChanged(EnquiryField.MESSAGE, "Hi"))
 
-        assertEquals("0400", viewModel.state.value.form.phone)
-        assertEquals("Hi", viewModel.state.value.form.message)
+        assertEquals("0400", viewModel.uiState.value.form.phone)
+        assertEquals("Hi", viewModel.uiState.value.form.message)
     }
 
     @Test
@@ -81,7 +81,7 @@ class EnquiryViewModelTest {
         viewModel.onEvent(EnquiryEvent.Submit)
         advanceUntilIdle()
 
-        val state = viewModel.state.value
+        val state = viewModel.uiState.value
         assertEquals(
             mapOf(EnquiryField.NAME to FieldError.REQUIRED, EnquiryField.EMAIL to FieldError.REQUIRED),
             state.fieldErrors,
@@ -97,14 +97,14 @@ class EnquiryViewModelTest {
 
         viewModel.onEvent(EnquiryEvent.FieldChanged(EnquiryField.NAME, "J"))
 
-        assertEquals(setOf(EnquiryField.EMAIL), viewModel.state.value.fieldErrors.keys)
+        assertEquals(setOf(EnquiryField.EMAIL), viewModel.uiState.value.fieldErrors.keys)
     }
 
     @Test
     fun `valid form goes submitting then submitted`() = runTest {
         fillValidForm()
 
-        viewModel.state.test {
+        viewModel.uiState.test {
             skipItems(1)
             viewModel.onEvent(EnquiryEvent.Submit)
             assertEquals(EnquiryStatus.Submitting, awaitItem().status)
@@ -120,10 +120,10 @@ class EnquiryViewModelTest {
 
         viewModel.onEvent(EnquiryEvent.Submit)
         advanceUntilIdle()
-        assertEquals(EnquiryStatus.Failed(UiError.Network), viewModel.state.value.status)
+        assertEquals(EnquiryStatus.Failed(UiError.Network), viewModel.uiState.value.status)
 
         viewModel.onEvent(EnquiryEvent.FieldChanged(EnquiryField.MESSAGE, "Update"))
-        assertEquals(EnquiryStatus.Editing, viewModel.state.value.status)
+        assertEquals(EnquiryStatus.Editing, viewModel.uiState.value.status)
     }
 
     @Test
@@ -147,14 +147,14 @@ class EnquiryViewModelTest {
 
         viewModel.onEvent(EnquiryEvent.Submit)
         advanceUntilIdle()
-        assertEquals(EnquiryStatus.Failed(UiError.Server), viewModel.state.value.status)
+        assertEquals(EnquiryStatus.Failed(UiError.Server), viewModel.uiState.value.status)
 
         repository.result = DataResult.Success(Unit)
         viewModel.onEvent(EnquiryEvent.Submit)
         advanceUntilIdle()
 
         assertEquals(listOf("key-1", "key-1"), repository.submitted.map { it.idempotencyKey.value })
-        assertEquals(EnquiryStatus.Submitted, viewModel.state.value.status)
+        assertEquals(EnquiryStatus.Submitted, viewModel.uiState.value.status)
     }
 
     @Test
@@ -185,7 +185,7 @@ class EnquiryViewModelTest {
         viewModel.onEvent(EnquiryEvent.Submit)
         advanceUntilIdle()
 
-        assertEquals(EnquiryStatus.Failed(UiError.RateLimited), viewModel.state.value.status)
+        assertEquals(EnquiryStatus.Failed(UiError.RateLimited), viewModel.uiState.value.status)
     }
 
     @Test
@@ -200,7 +200,7 @@ class EnquiryViewModelTest {
         advanceUntilIdle()
 
         assertEquals(1, repository.submitted.size)
-        assertEquals(EnquiryStatus.Submitted, viewModel.state.value.status)
+        assertEquals(EnquiryStatus.Submitted, viewModel.uiState.value.status)
     }
 
     @Test
@@ -213,7 +213,7 @@ class EnquiryViewModelTest {
         viewModel.onEvent(EnquiryEvent.Submit)
         advanceUntilIdle()
 
-        assertEquals("Jane", viewModel.state.value.form.name)
+        assertEquals("Jane", viewModel.uiState.value.form.name)
         assertEquals(1, repository.submitted.size)
     }
 
@@ -221,10 +221,10 @@ class EnquiryViewModelTest {
     fun `loads the product's photo and price for the summary card`() = runTest {
         products.product = DataResult.Success(jacket())
 
-        viewModel.state.value
+        viewModel.uiState.value
         advanceUntilIdle()
 
-        assertEquals(EnquiryProductUi("https://example.com/7.png", formatPrice(5_599, "AUD")), viewModel.state.value.product)
+        assertEquals(EnquiryProductUi("https://example.com/7.png", formatPrice(5_599, "AUD")), viewModel.uiState.value.product)
     }
 
     @Test
@@ -233,9 +233,9 @@ class EnquiryViewModelTest {
         fillValidForm()
         advanceUntilIdle()
 
-        assertEquals(null, viewModel.state.value.product)
+        assertEquals(null, viewModel.uiState.value.product)
         viewModel.onEvent(EnquiryEvent.Submit)
         advanceUntilIdle()
-        assertEquals(EnquiryStatus.Submitted, viewModel.state.value.status)
+        assertEquals(EnquiryStatus.Submitted, viewModel.uiState.value.status)
     }
 }

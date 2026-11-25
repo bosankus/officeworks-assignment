@@ -24,10 +24,14 @@ import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
+/**
+ * Displays the product search screen allowing users to query and view matching products.
+ * Manages search query updates, state transitions, and product detail navigation.
+ */
 @Composable
 fun SearchScreen(query: String, onBack: () -> Unit, onProductClick: (productId: Int) -> Unit) {
     val viewModel = koinViewModel<SearchViewModel> { parametersOf(query) }
-    val state by viewModel.state.collectAsStateWithLifecycle()
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
     SearchContent(state, viewModel::onEvent, onBack, onProductClick)
 }
 
