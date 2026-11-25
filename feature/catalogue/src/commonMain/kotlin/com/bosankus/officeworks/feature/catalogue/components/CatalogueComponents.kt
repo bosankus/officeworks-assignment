@@ -54,8 +54,12 @@ private const val TYPE_PRODUCT = "product"
 private const val TYPE_STATUS = "status"
 
 /**
- * Adaptive columns: two on a phone, more on wider screens.
- * Pass [bottomInset] when no Scaffold already pads for the navigation bar, so the last row can scroll clear of it.
+ * Shared UI components for the catalogue feature.
+ * Provides adaptive grids, product item lists, headers, and search controls.
+ */
+
+/**
+ * Renders an adaptive vertical grid for catalogue product items.
  */
 @Composable
 internal fun ProductGrid(
@@ -74,10 +78,16 @@ internal fun ProductGrid(
     )
 }
 
+/**
+ * Adds a full-width item spanning across all grid columns.
+ */
 internal fun LazyGridScope.fullWidthItem(key: String, content: @Composable () -> Unit) {
     item(key = key, span = { GridItemSpan(maxLineSpan) }, contentType = TYPE_STATUS) { content() }
 }
 
+/**
+ * Populates a grid with product cards from a list of UI product models.
+ */
 internal fun LazyGridScope.productItems(products: List<ProductUi>, onProductClick: (Int) -> Unit) {
     items(products, key = { "product_${it.id}" }, contentType = { TYPE_PRODUCT }) { product ->
         ProductCard(
@@ -91,7 +101,9 @@ internal fun LazyGridScope.productItems(products: List<ProductUi>, onProductClic
     }
 }
 
-//
+/**
+ * Renders a stylized section title with heading semantics.
+ */
 @Composable
 internal fun SectionHeader(text: String) {
     Text(
@@ -103,8 +115,7 @@ internal fun SectionHeader(text: String) {
 }
 
 /**
- * Search field with a round submit button. Empty, it shows a search icon; with text, a clear button
- * instead. Never both.
+ * Displays a search input field with dynamic action and clear buttons.
  */
 @Composable
 internal fun SearchField(query: String, onQueryChange: (String) -> Unit, onSearch: () -> Unit, modifier: Modifier = Modifier) {
