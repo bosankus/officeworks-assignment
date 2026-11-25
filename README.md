@@ -3,8 +3,16 @@
 An Android app for browsing, searching and enquiring about products, with a small backend in front of
 the [Fake Store API](https://fakestoreapi.com). Enquiries are emailed to a sales inbox.
 
-Kotlin Multiplatform + Compose Multiplatform (Android target only for now), and a Node.js + TypeScript
-backend. Why: [DECISIONS.md](DECISIONS.md).
+**Stack, and why**
+
+- **Client: Android app in Kotlin**, structured as Kotlin Multiplatform with Compose Multiplatform UI
+  (Android target only). Kotlin and Compose are my strongest stack, and keeping domain, data and UI in
+  shared modules enforces the boundaries the brief asks for, while leaving room for iOS later.
+- **Backend: Node.js + TypeScript** (Fastify, zod). The brief prefers TypeScript; Fastify and zod give
+  typed validation and fast in-process tests with little code. It sits between the app and Fake Store,
+  so the data source and email provider can change without touching the app.
+
+More in [DECISIONS.md](DECISIONS.md).
 
 ## Run it
 
@@ -103,8 +111,9 @@ flowchart LR
     UI -. "product images only" .-> FS
 ```
 
-The app talks only to the backend. Each enquiry carries an idempotency key, so a retry can't email
-sales twice.
+All product data comes from the backend; only product images load straight from the image URLs Fake
+Store provides (see DECISIONS.md, "Images"). Each enquiry carries an idempotency key, so a retry can't
+email sales twice.
 
 ## Run the checks
 
