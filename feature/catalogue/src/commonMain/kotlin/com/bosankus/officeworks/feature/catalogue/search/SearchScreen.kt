@@ -1,5 +1,6 @@
 package com.bosankus.officeworks.feature.catalogue.search
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -33,7 +34,10 @@ fun SearchScreen(query: String, onBack: () -> Unit, onProductClick: (productId: 
 @Composable
 internal fun SearchContent(state: SearchUiState, onEvent: (SearchEvent) -> Unit, onBack: () -> Unit, onProductClick: (Int) -> Unit) {
     Scaffold(topBar = { AppTopBar(stringResource(Res.string.search_title), onBack) }) { padding ->
-        Column(Modifier.fillMaxSize().padding(padding)) {
+        Column(
+            modifier = Modifier.fillMaxSize().padding(padding),
+            verticalArrangement = Arrangement.spacedBy(Spacing.medium),
+        ) {
             SearchField(
                 query = state.query,
                 onQueryChange = { onEvent(SearchEvent.QueryChanged(it)) },
